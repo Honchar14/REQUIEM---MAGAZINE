@@ -190,16 +190,6 @@ p {
   letter-spacing: -0.22em;
 }
 
-/* preloader */
-.pre__count {
-  position: absolute;
-  left: calc(30 * var(--ux));
-  top: calc(1051 * var(--uy) - var(--bl) * 100 * var(--u));
-  font-size: calc(100 * var(--u));
-  line-height: 1;
-  letter-spacing: -0.05em;
-  white-space: nowrap;
-}
 
 /* main screen */
 .ui__search input {
@@ -223,8 +213,3 @@ p {
   display: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pre {
-    display: none;
-  }
-}

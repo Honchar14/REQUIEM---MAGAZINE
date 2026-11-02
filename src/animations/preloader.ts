@@ -30,7 +30,6 @@ const MIN_LOADING = 2.8; // seconds the counter needs at least
  * screen height (uy), sizes use the smaller of the two (uu), so the whole
  * 1920×1080 frame always fits the viewport without distorting type.
  */
-const pad = (n: number) => String(n).padStart(2, "0");
 const $ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
 const $$ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => [...root.querySelectorAll<T>(s)];
 
@@ -169,21 +168,14 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     }
   };
   const { h: hLines, v: vLines } = buildLines();
-  const pre = $("[data-pre]");
-  const count = $("[data-pre-count]");
   const ui = $$("[data-ui] > *");
   const blurs = $$<SVGFEGaussianBlurElement>(".sr-filters feGaussianBlur");
 
-  let stopBgFlicker = () => {};
-
   const finish = () => {
-    stopBgFlicker(); // the typewriter flicker belongs to the preloader only
     settleRow(cards);
     toHome();
     relayout = () => (word.layout(), toHome());
-    pre.remove();
     html.classList.remove("is-loading");
-
   };
 
   const startCaptionFlicker = () => {
@@ -191,13 +183,12 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.01, interval: 450, chance: 0.25, hold: [120, 260] });
   };
 
+  // background columns: the typewriter flicker runs from the preloader on and never stops
   if (reduceMotion) {
     finish();
-    startCaptionFlicker();
     return Promise.resolve();
   }
-
-  stopBgFlicker = startFlicker(cols, { rate: 0.006, interval: 70 });
+  startFlicker(cols, { rate: 0.006, interval: 70 });
 
   /* ---------- initial state ---------- */
   gsap.set(tex, { opacity: 0 });
@@ -212,7 +203,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   ] as (HTMLElement | HTMLInputElement)[];
   const icons = $$("[data-ui] .ico");
   const typeIn = prepareTypewriter(typeTargets, { stagger: 90, min: 26, max: 62 });
-  gsap.set(count, { opacity: 0 });
   toHome(); // middle letters sit at their final spots, hidden
   [R, M].forEach((g, i) => {
     g.s = PRE_H / g.h;
@@ -223,15 +213,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   gsap.set([R.el, M.el], { opacity: 0 });
   cards.forEach((c, i) => gsap.set(c, { x: STACK[i][0] * ux(), y: STACK[i][1] * uy(), opacity: 0, scale: 0.92 }));
 
-  /* ---------- loading progress ---------- */
-  let loaded = 0;
-  const shown = { p: 0 };
-  const assets = trackAssets((p) => (loaded = p));
-
-  const render = () => {
-    const p = Math.round(shown.p * 100);
-    count.textContent = `${pad(p)}%`;
-  };
+  /* ---------- loading: photos, texture and font, no visible counter ---------- */
+  const assets = trackAssets(() => {});
 
   /* ---------- photo shuffle with motion blur ---------- */
   let photoIdx = 0;
@@ -275,8 +258,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
       .to([R.el, M.el], { keyframes: { opacity: [0, 1, 0.2, 1] }, duration: 0.4, stagger: 0.08, ease: "steps(3)" }, 0.75)
       .from([R.el, M.el], { yPercent: 6, duration: 0.6, ease: "expo.out", stagger: 0.08 }, 0.75)
 
-      /* 3 — counter appears, letters move apart, photo stack arrives */
-      .to(count, { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.35, ease: "steps(3)" }, 1.35)
+      /* 3 — letters move apart, photo stack arrives */
       .to(R, { x: fx(SPLIT_X.R), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 1.45)
       .to(M, { x: fx(SPLIT_X.M), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 1.45)
       .to(cards, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.05, ease: "expo.out" }, 1.75)
@@ -284,19 +266,9 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
         shuffle = window.setInterval(shuffleOnce, 120);
       }, 1.9)
 
-      /* 4 — count to 100: never faster than MIN_LOADING, never ahead of real loading */
+      /* 4 — hold until everything is loaded, but never shorter than MIN_LOADING */
       .add(() => {
-        const t0 = performance.now();
-        const step = () => {
-          const time = Math.min(1, (performance.now() - t0) / (MIN_LOADING * 1000));
-          const target = Math.min(time, loaded);
-          shown.p += (target - shown.p) * 0.18;
-          if (target >= 1 && shown.p > 0.995) shown.p = 1;
-          render();
-          if (shown.p < 1) requestAnimationFrame(step);
-          else assets.then(() => gsap.delayedCall(0.25, exit));
-        };
-        requestAnimationFrame(step);
+        Promise.all([assets, new Promise((r) => setTimeout(r, MIN_LOADING * 1000))]).then(() => gsap.delayedCall(0.25, exit));
       }, 1.5);
 
     /* 5 — exit: letters grow into the wordmark, grid draws, stack deals into the row */
@@ -311,7 +283,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
         },
       });
       out
-        .to(count, { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
         .to(R, { x: R.home, y: R.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
         .to(M, { x: M.home, y: M.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
         .to(hLines, { scaleX: 1, duration: 0.75, stagger: 0.05, ease: "power3.inOut" }, 0.45)
