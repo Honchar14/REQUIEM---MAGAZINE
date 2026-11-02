@@ -170,7 +170,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const { h: hLines, v: vLines } = buildLines();
   const pre = $("[data-pre]");
   const count = $("[data-pre-count]");
-  const bar = $("[data-pre-bar]");
+  const idx = $("[data-pre-idx]");
   const label = $("[data-pre-label]");
   const ui = $$("[data-ui] > *");
   const blurs = $$<SVGFEGaussianBlurElement>(".sr-filters feGaussianBlur");
@@ -184,6 +184,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     relayout = () => (word.layout(), toHome());
     pre.remove();
     html.classList.remove("is-loading");
+    // main screen: the same typewriter flicker on the three captions, each with its own rhythm
+    for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.04, interval: 150, hold: [110, 280] });
   };
 
   if (reduceMotion) {
@@ -219,10 +221,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const render = () => {
     const p = Math.round(shown.p * 100);
     count.textContent = `${pad(p)}%`;
-    const left = count.getBoundingClientRect().right;
-    const end = 1890 * ux();
-    bar.style.left = `${left}px`;
-    bar.style.width = `${Math.max(0, end - left) * shown.p}px`;
   };
 
   /* ---------- photo shuffle with motion blur ---------- */
@@ -235,6 +233,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     photoIdx = (photoIdx + 1) % NEWS_PHOTOS.length;
     showPhoto(card, photoIdx);
     card.style.zIndex = String(++z);
+    idx.textContent = `${pad(photoIdx + 1)} / ${pad(NEWS_PHOTOS.length)}`;
     const dir = Math.random() < 0.5 ? -1 : 1;
     const blur = { v: 38 };
     gsap.fromTo(
@@ -303,7 +302,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
         },
       });
       out
-        .to([count, label, bar], { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
+        .to([count, label], { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
         .to(R, { x: R.home, y: R.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
         .to(M, { x: M.home, y: M.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
         .to(hLines, { scaleX: 1, duration: 0.75, stagger: 0.05, ease: "power3.inOut" }, 0.45)
