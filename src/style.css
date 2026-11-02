@@ -192,8 +192,12 @@ p {
 
 
 /* main screen */
+.ui__search {
+  cursor: text;
+}
 .ui__search input {
-  width: calc(150 * var(--u));
+  width: calc(145 * var(--u));
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   height: calc(18 * var(--u));
   padding: 0;
   margin: 0;
@@ -213,3 +217,44 @@ p {
   display: none;
 }
 
+/* search hover: the REC light of an old camcorder, a red dot with a glow
+   that blinks hard on and off; the text steps 10px right to make room */
+.ui__search .rec {
+  position: absolute;
+  left: 0;
+  top: calc(5 * var(--u));
+  width: calc(5 * var(--u));
+  height: calc(5 * var(--u));
+  border-radius: 50%;
+  background: #d00000;
+  box-shadow:
+    0 0 calc(7.8 * var(--u)) #d00000,
+    0 0 calc(4.2 * var(--u)) #d00000;
+  opacity: 0;
+  transform: scale(0);
+  transition:
+    opacity 0.12s linear,
+    transform 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+  pointer-events: none;
+}
+.ui__search:hover .rec,
+.ui__search:focus-within .rec {
+  opacity: 1;
+  transform: scale(1);
+  animation: rec-blink 1.1s step-end 0.35s infinite;
+}
+.ui__search:hover input,
+.ui__search:focus-within input {
+  transform: translateX(calc(10 * var(--u)));
+}
+@keyframes rec-blink {
+  0% { opacity: 1; }
+  55% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui__search .rec,
+  .ui__search input { transition: none; }
+  .ui__search:hover .rec,
+  .ui__search:focus-within .rec { animation: none; }
+}
