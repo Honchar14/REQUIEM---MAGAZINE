@@ -28,7 +28,8 @@ const params = new URLSearchParams(location.search);
 const PAGE_TIME = params.has("slidedemo") ? 2.4 : 7; // seconds a page plays before the next one
 
 /**
- * Five ways to change pages, picked with ?slide= (name or 1–5); "film" by default.
+ * Five ways to change pages, picked with ?slide= (name or 1–5); "flicker" by default
+ * (the one chosen for the site).
  *   1 film    — the strip advances frame by frame: knocked out sideways with a hard
  *               motion blur, the next photo slams in on an overexposed flash
  *   2 flicker — photos blink out and back in, in random order, in the stepped
@@ -45,7 +46,7 @@ const pickTransition = (): Transition => {
   const v = params.get("slide") ?? "";
   const n = Number(v);
   if (n >= 1 && n <= TRANSITIONS.length) return TRANSITIONS[n - 1];
-  return (TRANSITIONS as readonly string[]).includes(v) ? (v as Transition) : "film";
+  return (TRANSITIONS as readonly string[]).includes(v) ? (v as Transition) : "flicker";
 };
 
 type Info = {
