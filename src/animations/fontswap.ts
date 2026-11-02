@@ -2,24 +2,17 @@ import { gsap } from "gsap";
 
 /**
  * REQUIEM font swap: every few seconds one letter is knocked out sideways with
- * a hard horizontal motion blur and the same letter from another typeface
+ * a hard horizontal motion blur and the same capital in Special Elite
  * slams into its slot at full cap height, on the wordmark's baseline.
- * Sometimes it flicks through two or three faces before one sticks; after a
- * beat the original letter snaps back the same way.
+ * After a beat the original letter snaps back the same way.
  *
  * The original letters are never moved: a swap hides the letter and plays on
  * temporary copies, then restores it.
  */
 const NS = "http://www.w3.org/2000/svg";
 
-/** Faces the letters jump into (loaded for R E Q U I M only, see index.html). Special Elite, as in the layout, comes up most. */
-export const FACES = [
-  { family: "Special Elite", weight: 400, style: "normal", odds: 3 },
-  { family: "UnifrakturMaguntia", weight: 400, style: "normal", odds: 1.4 },
-  { family: "Bodoni Moda", weight: 900, style: "italic", odds: 1.4 },
-  { family: "Instrument Serif", weight: 400, style: "italic", odds: 1.2 },
-  { family: "Rubik Dirt", weight: 400, style: "normal", odds: 1.2 },
-];
+/** The face the letters jump into, as in the layout: Special Elite capitals. */
+export const FACES = [{ family: "Special Elite", weight: 400, style: "normal" }];
 type Face = (typeof FACES)[number];
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -97,22 +90,15 @@ function letterIn(svg: SVGSVGElement, ch: string, face: Face, slot: Box, line: {
     "font-style": face.style,
     fill: "currentColor",
   });
-  t.textContent = ch;
+  t.textContent = ch.toUpperCase();
   const holder = make("g");
   holder.appendChild(t);
   svg.appendChild(holder);
   return holder;
 }
 
-function pickFace(not: number[]) {
-  const pool = FACES.map((f, i) => ({ i, w: not.includes(i) ? 0 : f.odds }));
-  let r = Math.random() * pool.reduce((s, p) => s + p.w, 0);
-  for (const p of pool) if ((r -= p.w) < 0) return p.i;
-  return 0;
-}
-
 /** One swap on one letter. Resolves when the original is back. */
-function swap(svg: SVGSVGElement, glyph: Glyph, ch: string, line: { cap: number; base: number }, lastFace: { i: number }) {
+function swap(svg: SVGSVGElement, glyph: Glyph, ch: string, line: { cap: number; base: number }) {
   return new Promise<void>((done) => {
     const slot = boxOf(svg, glyph);
     const defs = make("defs");
@@ -132,10 +118,7 @@ function swap(svg: SVGSVGElement, glyph: Glyph, ch: string, line: { cap: number;
     glyph.style.opacity = "0";
 
     const dir = Math.random() < 0.5 ? -1 : 1;
-    const hits = Math.random() < 0.35 ? 2 + ((Math.random() * 2) | 0) : 1; // sometimes it flicks through faces
-    const faces: number[] = [];
-    for (let k = 0; k < hits; k++) faces.push(pickFace([lastFace.i, faces[faces.length - 1] ?? -1]));
-    lastFace.i = faces[faces.length - 1];
+    const faces = [0];
 
     const outBlur = blurFilter(defs);
     outHolder.setAttribute("filter", outBlur.url);
@@ -156,7 +139,7 @@ function swap(svg: SVGSVGElement, glyph: Glyph, ch: string, line: { cap: number;
       0,
     );
 
-    // 2 — one or more faces slam in; the last one holds
+    // 2 — the Special Elite capital slams in and holds
     let at = 0.06;
     let current: SVGGElement | null = null;
     faces.forEach((fi, k) => {
@@ -200,18 +183,18 @@ export async function startFontSwap({ minGap = 1.5, maxGap = 3.5 } = {}) {
   const mid = [...svg.querySelectorAll<Glyph>('[data-glyph="mid"] path')];
   const glyphs: Glyph[] = [svg.querySelector<Glyph>('[data-glyph="R"]')!, ...mid, svg.querySelector<Glyph>('[data-glyph="M"]')!];
   const chars = [..."REQUIEM"];
-  const lastFace = { i: -1 };
   let lastLetter = -1;
 
   const loop = async () => {
     if (!document.hidden) {
+      // every letter but I
       let i: number;
       do i = (Math.random() * glyphs.length) | 0;
-      while (i === lastLetter);
+      while (i === lastLetter || chars[i] === "I");
       lastLetter = i;
       // cap height and baseline of the wordmark, read off its E (it may have been re-justified on resize)
       const e = boxOf(svg, mid[0]);
-      await swap(svg, glyphs[i], chars[i], { cap: e.h, base: e.y + e.h }, lastFace);
+      await swap(svg, glyphs[i], chars[i], { cap: e.h, base: e.y + e.h });
     }
     setTimeout(loop, rand(minGap, maxGap) * 1000);
   };
