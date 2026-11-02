@@ -19,6 +19,8 @@
         <filter id="mblur-2" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
         <filter id="mblur-3" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
         <filter id="mblur-4" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+        <!-- the pager ring as it jumps between pages -->
+        <filter id="mblur-ring" x="-100%" y="-20%" width="300%" height="140%"><feGaussianBlur stdDeviation="0 0" /></filter>
       </defs>
     </svg>
 
@@ -67,18 +69,22 @@
           <span class="gt" style="--gr:0;--gb:13.4">EN - ES</span>
         </a>
 
-        <div class="grp ui__pager" style="--x:485;--y:451;--w:373;--h:34">
+        <!-- pager: the ring marks the page on screen and fills up as the autoplay runs -->
+        <div class="grp ui__pager" style="--x:485;--y:451;--w:373;--h:34" data-pager>
           <span class="gt" style="--gx:0;--gb:23">LAST NEWS:</span>
-          <img class="ico" style="--ix:98;--iy:0;--iw:34;--ih:34" src="/media/icons/circle-stroke.svg" alt="" />
-          <span class="gt" style="--gx:110;--gb:23">1</span>
+          <span class="ico ui__ring" style="--ix:98;--iy:0;--iw:34;--ih:34" data-ring aria-hidden="true">
+            <img class="ui__ring-base" src="/media/icons/circle-stroke.svg" alt="" />
+            <img class="ui__ring-fill" src="/media/icons/circle-stroke.svg" alt="" />
+          </span>
+          <button class="gt" type="button" style="--gx:110;--gb:23" data-page="0" aria-label="News, page 1" aria-current="true">1</button>
           <span class="gt gt--dash" style="--gx:137;--gb:23">--</span>
-          <span class="gt" style="--gx:174;--gb:23">2</span>
+          <button class="gt" type="button" style="--gx:174;--gb:23" data-page="1" aria-label="News, page 2">2</button>
           <span class="gt gt--dash" style="--gx:201;--gb:23">--</span>
-          <span class="gt" style="--gx:237;--gb:23">3</span>
+          <button class="gt" type="button" style="--gx:237;--gb:23" data-page="2" aria-label="News, page 3">3</button>
           <span class="gt gt--dash" style="--gx:264;--gb:23">--</span>
-          <span class="gt" style="--gx:299;--gb:23">4</span>
+          <button class="gt" type="button" style="--gx:299;--gb:23" data-page="3" aria-label="News, page 4">4</button>
           <span class="gt gt--dash" style="--gx:327;--gb:23">--</span>
-          <span class="gt" style="--gx:363;--gb:23">5</span>
+          <button class="gt" type="button" style="--gx:363;--gb:23" data-page="4" aria-label="News, page 5">5</button>
         </div>
 
         <p class="t" style="--x:485;--b:1050" data-flicker>Fashion feature</p>

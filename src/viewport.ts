@@ -24,10 +24,9 @@ export const uu = () => Math.min(ux(), uy());
  * it is measured on the real font instead of guessed; every label is then
  * placed by its Figma baseline and lands on the same pixel everywhere.
  */
-function measureBaseline() {
+function baselineOf(font: string) {
   const probe = document.createElement("div");
-  probe.style.cssText =
-    "position:absolute;left:-9999px;top:0;font:100px 'Special Elite';line-height:1;white-space:nowrap;visibility:hidden";
+  probe.style.cssText = `position:absolute;left:-9999px;top:0;font:${font};line-height:1;white-space:nowrap;visibility:hidden`;
   probe.textContent = "Hg";
   const mark = document.createElement("span");
   mark.style.cssText = "display:inline-block;width:0;height:0";
@@ -35,7 +34,13 @@ function measureBaseline() {
   document.body.appendChild(probe);
   const ratio = (mark.getBoundingClientRect().top - probe.getBoundingClientRect().top) / 100;
   probe.remove();
-  document.documentElement.style.setProperty("--bl", String(ratio));
+  return String(ratio);
+}
+function measureBaseline() {
+  const root = document.documentElement.style;
+  root.setProperty("--bl", baselineOf("100px 'Special Elite'"));
+  // the news card titles are set in Helvetica Bold (Arial where Helvetica is missing)
+  root.setProperty("--blh", baselineOf("700 100px 'Helvetica Neue', Helvetica, Arial, sans-serif"));
 }
 
 /** Writes the units into CSS custom properties and keeps them current. */

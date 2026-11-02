@@ -106,7 +106,7 @@ p {
   background: #151513;
   will-change: transform;
 }
-.photo img {
+.photo > img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -114,7 +114,7 @@ p {
   object-fit: cover;
   display: block;
 }
-.photo img[hidden] {
+.photo > img[hidden] {
   display: none;
 }
 
@@ -331,4 +331,157 @@ p {
   .ui__nav a::after { transition: none; }
   .ui__nav a:hover::before,
   .ui__nav a:focus-visible::before { animation: none; }
+}
+
+/* ---------- last news: pager ---------- */
+.ui__pager button {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* a bigger hit area than the 11px digit */
+.ui__pager button::before {
+  content: "";
+  position: absolute;
+  inset: calc(-10 * var(--u)) calc(-9 * var(--u));
+}
+.ui__pager button:focus-visible {
+  outline: 1px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: calc(6 * var(--u));
+}
+.ui__ring img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* as in the layout: a faint full ring, and the white one filling up as the page plays
+   (it grows from 12 o'clock anticlockwise, the way the layout shows it half done) */
+.ui__ring-base {
+  opacity: 0.25;
+}
+.ui__ring-fill {
+  --p: 0deg;
+  -webkit-mask-image: conic-gradient(from 0deg, transparent calc(360deg - var(--p)), #000 0);
+  mask-image: conic-gradient(from 0deg, transparent calc(360deg - var(--p)), #000 0);
+}
+
+/* ---------- last news: hover card ---------- */
+.photo > img {
+  transition: filter 0.45s ease;
+}
+/* the layout's hover: the photo drops to black and white, a bit darker */
+.photo.is-open > img {
+  filter: grayscale(1) brightness(0.86) contrast(1.06);
+}
+.photo__info {
+  position: absolute;
+  left: 0;
+  top: calc(142 * var(--uy));
+  width: 100%;
+  height: calc(248 * var(--uy));
+  z-index: 3;
+  color: #fff;
+  /* glass: frosted backdrop under a 60% dark gradient, lit along the top edge */
+  background: linear-gradient(250deg, rgba(0, 0, 0, 0.6) 0%, rgba(45, 45, 45, 0.6) 100%);
+  -webkit-backdrop-filter: blur(calc(13 * var(--u))) saturate(1.1);
+  backdrop-filter: blur(calc(13 * var(--u))) saturate(1.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transform: translateY(101%);
+  pointer-events: none;
+}
+.photo.is-open .photo__info {
+  pointer-events: auto;
+}
+/* every line is placed by its Figma baseline (--b, from the top of the card panel) */
+.photo__info > * {
+  position: absolute;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+  top: calc(var(--b) * var(--uy) - var(--bl) * var(--s) * var(--u));
+  font-size: calc(var(--s) * var(--u));
+}
+.pi__title {
+  --b: 52;
+  --s: 45;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  top: calc(var(--b) * var(--uy) - var(--blh, 0.77) * var(--s) * var(--u));
+}
+.pi__sub {
+  --b: 77.33;
+  --s: 16;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+.pi__body {
+  --b: 112.67;
+  --s: 14;
+  left: calc(20 * var(--ux));
+  width: calc(340 * var(--ux));
+  white-space: pre-line;
+}
+.pi__date {
+  --b: 228;
+  --s: 12;
+  right: calc(20 * var(--ux));
+  color: rgba(255, 255, 255, 0.5);
+}
+.pi__more {
+  --b: 219.67;
+  --s: 14;
+  left: calc(20 * var(--ux));
+  /* the link box spans text, arrow and underline */
+  width: calc(122 * var(--u));
+  height: calc(var(--s) * var(--u) + 10 * var(--u));
+}
+.pi__more img,
+.pi__more i {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+/* arrow at the end of the line, 6px above the baseline; underline 5px below it */
+.pi__arrow {
+  left: calc(112 * var(--u));
+  top: calc(var(--bl) * 14 * var(--u) - 6.67 * var(--u));
+  width: calc(10 * var(--u));
+  height: calc(8 * var(--u));
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pi__line {
+  left: 0;
+  top: calc(var(--bl) * 14 * var(--u) + 5.33 * var(--u));
+  width: 100%;
+  height: calc(3 * var(--u));
+  background: url("/media/icons/line-nav.svg") 0 0 / 100% 100% no-repeat;
+  transform-origin: 0% 50%;
+}
+.pi__more:hover .pi__arrow,
+.pi__more:focus-visible .pi__arrow {
+  transform: translateX(calc(4 * var(--u)));
+}
+.pi__more:focus-visible {
+  outline: 1px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: calc(4 * var(--u));
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo > img,
+  .pi__arrow { transition: none; }
 }
