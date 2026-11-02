@@ -13,8 +13,8 @@ import { uu } from "../viewport";
  *   Each photo is knocked out sideways with a hard motion blur, the next one
  *   slams in from the other side on an overexposed flash.
  * - Hover (or keyboard focus) on a story: the photo drops to black and white and
- *   the glass card rises from the bottom; the title decodes letter by letter,
- *   the rest is struck in like the typewriter labels and the underline draws.
+ *   the glass card rises from the bottom; the title flickers in letter by
+ *   letter, the rest is struck in like the typewriter labels and the underline draws.
  *   The autoplay waits while a card is open.
  */
 
@@ -23,7 +23,6 @@ const SLOT_OF_CARD = [1, 0, 2, 3, 4];
 /** ring position in the pager for each page (layout x − 485) */
 const RING_X = [98, 163, 225, 288, 351];
 const PAGE_TIME = 7; // seconds a page plays before the next one
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#/&%";
 
 type Info = {
   el: HTMLElement;
@@ -78,24 +77,20 @@ function writeInfo(c: Card, story: Story) {
   c.img.alt = `${story.title}: ${story.sub}`;
 }
 
-/** The title resolves from random glyphs, left to right. */
-function decode(el: HTMLElement, text: string, duration = 0.42) {
-  const chars = [...text.toUpperCase()];
-  const o = { p: 0 };
-  return gsap.to(o, {
-    p: 1,
-    duration,
-    ease: `steps(${Math.max(8, chars.length * 2)})`,
-    onUpdate: () => {
-      const n = Math.floor(o.p * chars.length);
-      el.textContent = chars
-        .map((ch, k) => (k < n || !/[A-Z0-9]/.test(ch) ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0]))
-        .join("");
-    },
-    onComplete: () => {
-      el.textContent = text;
-    },
+/** The title flickers in letter by letter, in random order, like the wordmark letters in the preloader. */
+function flickerIn(el: HTMLElement, text: string) {
+  el.textContent = "";
+  const letters = [...text].map((ch) => {
+    const s = document.createElement("span");
+    s.textContent = ch;
+    el.appendChild(s);
+    return s;
   });
+  return gsap.fromTo(
+    letters.filter((s) => s.textContent !== " "),
+    { opacity: 0 },
+    { keyframes: { opacity: [0, 1, 0.25, 1] }, duration: 0.35, ease: "steps(3)", stagger: { each: 0.04, from: "random" } },
+  );
 }
 
 export function initSlider({ reduceMotion = false } = {}) {
@@ -155,7 +150,7 @@ export function initSlider({ reduceMotion = false } = {}) {
     c.tl = gsap
       .timeline()
       .to(el, { yPercent: 0, duration: 0.55, ease: "expo.out" }, 0)
-      .add(decode(title, c.story.title), 0.1)
+      .add(flickerIn(title, c.story.title), 0.12)
       .fromTo(rest, { opacity: 0 }, { keyframes: { opacity: [0, 1, 0.35, 1] }, duration: 0.3, ease: "steps(3)", stagger: 0.06 }, 0.16)
       .fromTo(rest, { y: lift }, { y: 0, duration: 0.5, ease: "expo.out", stagger: 0.06 }, 0.16)
       .fromTo(line, { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "expo.out" }, 0.34);
