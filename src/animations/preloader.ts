@@ -179,8 +179,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   };
 
   const startCaptionFlicker = () => {
-    // the same typewriter flicker as the preloader columns, but rare: about one letter every 1.5–2 s per caption
-    for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.01, interval: 450, chance: 0.25, hold: [120, 260] });
+    // the same typewriter flicker as the preloader columns, kept sparse: about one letter per second per caption
+    for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.01, interval: 320, chance: 0.33, hold: [120, 260] });
   };
 
   // background columns: the typewriter flicker runs from the preloader on and never stops
