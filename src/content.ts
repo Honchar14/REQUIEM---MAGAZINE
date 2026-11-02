@@ -20,9 +20,9 @@ export const BG_COLUMNS = [
 
 /** News photos used by the preloader stack and the hero strip. */
 export const NEWS_PHOTOS = [
-  "/assets/news/01.webp",
-  "/assets/news/02.webp",
-  "/assets/news/03.webp",
-  "/assets/news/04.webp",
-  "/assets/news/05.webp",
+  "/media/news/01.webp",
+  "/media/news/02.webp",
+  "/media/news/03.webp",
+  "/media/news/04.webp",
+  "/media/news/05.webp",
 ];

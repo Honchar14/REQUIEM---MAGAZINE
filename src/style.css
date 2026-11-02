@@ -5,6 +5,7 @@
   --f-type: "Special Elite", "Courier Prime", monospace;
   /* the 1920×1080 Figma frame always fits the viewport:
      x follows width, y follows height, sizes use the smaller of the two */
+  /* fallbacks; main.ts overwrites these with the exact visible area */
   --ux: calc(100vw / 1920);
   --uy: calc(100vh / 1080);
   --uy: calc(100dvh / 1080);
@@ -25,9 +26,12 @@ body {
   font-family: var(--f-type);
   -webkit-font-smoothing: antialiased;
 }
-html.is-loading,
-html.is-loading body {
+/* the site is a single fixed screen: nothing can ever scroll */
+html,
+body {
+  height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 a {
   color: inherit;
@@ -43,10 +47,8 @@ p {
 
 /* ---------- stage: everything is laid out in design px ---------- */
 .stage {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
   overflow: hidden;
 }
 
@@ -58,7 +60,7 @@ p {
   inset: 0;
 }
 .bg__tex {
-  background: url("/assets/textures/bg-main.webp") center / cover no-repeat;
+  background: url("/media/textures/bg-main.webp") center / cover no-repeat;
 }
 .bg__col {
   position: absolute;

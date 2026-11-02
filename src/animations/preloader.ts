@@ -2,6 +2,7 @@ import { gsap } from "gsap";
 import { BG_COLUMNS, NEWS_PHOTOS } from "../content";
 import { startFlicker } from "./flicker";
 import linesSvg from "../assets/lines.svg?raw";
+import { ux, uy, uu, watchViewport } from "../viewport";
 
 /* ---------- layout constants, in px of the 1920×1080 design frame ---------- */
 const STACK = [
@@ -28,9 +29,6 @@ const MIN_LOADING = 2.8; // seconds the counter needs at least
  * screen height (uy), sizes use the smaller of the two (uu), so the whole
  * 1920×1080 frame always fits the viewport without distorting type.
  */
-const ux = () => window.innerWidth / 1920;
-const uy = () => window.innerHeight / 1080;
-const uu = () => Math.min(ux(), uy());
 const pad = (n: number) => String(n).padStart(2, "0");
 const $ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
 const $$ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => [...root.querySelectorAll<T>(s)];
@@ -124,7 +122,7 @@ function showPhoto(card: HTMLElement, k: number) {
 
 /** Resolves progressively as images and fonts arrive. */
 function trackAssets(onProgress: (p: number) => void): Promise<void> {
-  const urls = [...NEWS_PHOTOS, "/assets/textures/bg-main.webp"];
+  const urls = [...NEWS_PHOTOS, "/media/textures/bg-main.webp"];
   const total = urls.length + 1;
   let done = 0;
   const tick = () => onProgress(++done / total);
@@ -155,6 +153,9 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const tex = $(".bg__tex");
   const cols = buildBackground();
   const cards = buildPhotos();
+  // units are live from the very first frame; after loading the wordmark re-justifies on resize
+  let relayout = () => {};
+  watchViewport(() => relayout());
   const word = buildWordmark();
   const { R, M } = word;
   const mid = word.mid.map((g) => g.el);
@@ -180,11 +181,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const finish = () => {
     settleRow(cards);
     toHome();
-    let raf = 0;
-    window.addEventListener("resize", () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => (word.layout(), toHome()));
-    });
+    relayout = () => (word.layout(), toHome());
     pre.remove();
     html.classList.remove("is-loading");
     startFlicker($$("[data-ui] [data-flicker]"), { rate: 0.03, interval: 120 });
