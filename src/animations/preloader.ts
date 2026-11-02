@@ -14,30 +14,59 @@ const STACK = [
 /** where each stack card lands in the main-screen row */
 const ROW = [384, -2, 770, 1156, 1542].map((x) => [x, 536] as const);
 
-/** glyph bounding boxes inside the wordmark svg (viewBox 0 0 1860 352) */
-const BOX = { R: { x: 0, y: 8.66, h: 318 }, M: { x: 1556, y: 8.66, h: 318 } };
-const WORD_ORIGIN = 30; // wordmark sits at (30, 30) in the frame
-const PRE_SCALE = 220 / 318; // R / M height in the preloader: 220px
-const PRE_Y = 430 - WORD_ORIGIN;
-const CENTER = { R: 754 - WORD_ORIGIN, M: 956 - WORD_ORIGIN };
-const SPLIT = { R: 400 - WORD_ORIGIN, M: 1309 - WORD_ORIGIN };
+/** R / M in the preloader, in px of the design frame */
+const PRE_H = 220; // letter height while loading
+const PRE_TOP = 430;
+const CENTER_X = { R: 754, M: 956 };
+const SPLIT_X = { R: 400, M: 1309 };
+const WORD = { x: 30, y: 30, w: 1860, h: 352 }; // wordmark box in the frame
 
 const MIN_LOADING = 2.8; // seconds the counter needs at least
 
-const u = () => window.innerWidth / 1920;
+/*
+ * Units: x positions follow the screen width (ux), y positions follow the
+ * screen height (uy), sizes use the smaller of the two (uu), so the whole
+ * 1920×1080 frame always fits the viewport without distorting type.
+ */
+const ux = () => window.innerWidth / 1920;
+const uy = () => window.innerHeight / 1080;
+const uu = () => Math.min(ux(), uy());
 const pad = (n: number) => String(n).padStart(2, "0");
 const $ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
 const $$ = <T extends Element = HTMLElement>(s: string, root: ParentNode = document) => [...root.querySelectorAll<T>(s)];
 
-type Glyph = { el: SVGGElement; box: { x: number; y: number }; x: number; y: number; s: number };
+type Glyph = { el: SVGGraphicsElement; x0: number; y0: number; w: number; h: number; home: number; x: number; y: number; s: number };
 
-function glyph(name: "R" | "M"): Glyph {
-  const el = $<SVGGElement>(`[data-glyph="${name}"]`);
-  const box = BOX[name];
-  return { el, box, x: box.x, y: box.y, s: 1 };
-}
+/** frame px → wordmark viewBox units */
+const fx = (X: number) => ((X - WORD.x) * ux()) / uu();
+const fy = (Y: number) => ((Y - WORD.y) * uy()) / uu();
+
 function applyGlyph(g: Glyph) {
-  g.el.setAttribute("transform", `translate(${g.x - g.box.x * g.s} ${g.y - g.box.y * g.s}) scale(${g.s})`);
+  g.el.setAttribute("transform", `translate(${g.x - g.x0 * g.s} ${g.y - g.y0 * g.s}) scale(${g.s})`);
+}
+
+/**
+ * The wordmark keeps its letter shapes and always spans the full width:
+ * on screens wider than 16:9 the extra room goes into the gaps between letters.
+ */
+function buildWordmark() {
+  const svg = $<SVGSVGElement>("[data-wordmark]");
+  const els = [
+    $<SVGGElement>('[data-glyph="R"]'),
+    ...$$<SVGPathElement>('[data-glyph="mid"] path'),
+    $<SVGGElement>('[data-glyph="M"]'),
+  ];
+  const glyphs: Glyph[] = els.map((el) => {
+    const b = el.getBBox();
+    return { el, x0: b.x, y0: b.y, w: b.width, h: b.height, home: b.x, x: b.x, y: b.y, s: 1 };
+  });
+  const layout = () => {
+    const width = WORD.w * (ux() / uu());
+    svg.setAttribute("viewBox", `0 0 ${width} ${WORD.h}`);
+    for (const g of glyphs) g.home = g.x0 + (g.x0 / (WORD.w - g.w)) * (width - WORD.w);
+  };
+  layout();
+  return { glyphs, R: glyphs[0], M: glyphs[glyphs.length - 1], mid: glyphs.slice(1, -1), layout };
 }
 
 function buildBackground() {
@@ -115,8 +144,8 @@ function trackAssets(onProgress: (p: number) => void): Promise<void> {
 function settleRow(cards: HTMLElement[]) {
   cards.forEach((c, i) => {
     gsap.set(c, { clearProps: "transform,opacity" });
-    c.style.left = `calc(${ROW[i][0]} * var(--u))`;
-    c.style.top = `calc(${ROW[i][1]} * var(--u))`;
+    c.style.left = `calc(${ROW[i][0]} * var(--ux))`;
+    c.style.top = `calc(${ROW[i][1]} * var(--uy))`;
     c.style.filter = "none";
   });
 }
@@ -126,9 +155,17 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const tex = $(".bg__tex");
   const cols = buildBackground();
   const cards = buildPhotos();
-  const R = glyph("R");
-  const M = glyph("M");
-  const mid = $$<SVGPathElement>('[data-glyph="mid"] path');
+  const word = buildWordmark();
+  const { R, M } = word;
+  const mid = word.mid.map((g) => g.el);
+  const toHome = () => {
+    for (const g of word.glyphs) {
+      g.x = g.home;
+      g.y = g.y0;
+      g.s = 1;
+      applyGlyph(g);
+    }
+  };
   const { h: hLines, v: vLines } = buildLines();
   const pre = $("[data-pre]");
   const count = $("[data-pre-count]");
@@ -142,7 +179,12 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
 
   const finish = () => {
     settleRow(cards);
-    [R, M].forEach((g) => ((g.x = g.box.x), (g.y = g.box.y), (g.s = 1), applyGlyph(g)));
+    toHome();
+    let raf = 0;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => (word.layout(), toHome()));
+    });
     pre.remove();
     html.classList.remove("is-loading");
     startFlicker($$("[data-ui] [data-flicker]"), { rate: 0.03, interval: 120 });
@@ -161,14 +203,15 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   gsap.set(vLines, { scaleY: 0, transformOrigin: "50% 0%" });
   gsap.set(ui, { opacity: 0 });
   gsap.set([count, label], { opacity: 0 });
+  toHome(); // middle letters sit at their final spots, hidden
   [R, M].forEach((g, i) => {
-    g.s = PRE_SCALE;
-    g.x = i ? CENTER.M : CENTER.R;
-    g.y = PRE_Y;
+    g.s = PRE_H / g.h;
+    g.x = fx(i ? CENTER_X.M : CENTER_X.R);
+    g.y = fy(PRE_TOP);
     applyGlyph(g);
   });
   gsap.set([R.el, M.el], { opacity: 0 });
-  cards.forEach((c, i) => gsap.set(c, { x: STACK[i][0] * u(), y: STACK[i][1] * u(), opacity: 0, scale: 0.92 }));
+  cards.forEach((c, i) => gsap.set(c, { x: STACK[i][0] * ux(), y: STACK[i][1] * uy(), opacity: 0, scale: 0.92 }));
 
   /* ---------- loading progress ---------- */
   let loaded = 0;
@@ -196,8 +239,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     const blur = { v: 38 };
     gsap.fromTo(
       card,
-      { x: (STACK[k][0] + dir * 70) * u(), y: (STACK[k][1] + (Math.random() * 30 - 15)) * u() },
-      { x: STACK[k][0] * u(), y: STACK[k][1] * u(), duration: 0.22, ease: "expo.out", overwrite: "auto" },
+      { x: (STACK[k][0] + dir * 70) * ux(), y: (STACK[k][1] + (Math.random() * 30 - 15)) * uy() },
+      { x: STACK[k][0] * ux(), y: STACK[k][1] * uy(), duration: 0.22, ease: "expo.out", overwrite: "auto" },
     );
     gsap.fromTo(blur, { v: 38 }, {
       v: 0,
@@ -226,8 +269,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
 
       /* 3 — counter + label, letters move apart, photo stack arrives */
       .to([count, label], { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.35, ease: "steps(3)" }, 1.35)
-      .to(R, { x: SPLIT.R, duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 1.45)
-      .to(M, { x: SPLIT.M, duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 1.45)
+      .to(R, { x: fx(SPLIT_X.R), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 1.45)
+      .to(M, { x: fx(SPLIT_X.M), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 1.45)
       .to(cards, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.05, ease: "expo.out" }, 1.75)
       .add(() => {
         shuffle = window.setInterval(shuffleOnce, 120);
@@ -263,8 +306,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
       });
       out
         .to([count, label, bar], { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
-        .to(R, { x: R.box.x, y: R.box.y, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
-        .to(M, { x: M.box.x, y: M.box.y, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
+        .to(R, { x: R.home, y: R.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
+        .to(M, { x: M.home, y: M.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
         .to(hLines, { scaleX: 1, duration: 0.75, stagger: 0.05, ease: "power3.inOut" }, 0.45)
         .to(vLines, { scaleY: 1, duration: 0.75, stagger: { each: 0.03, from: "random" }, ease: "power3.inOut" }, 0.55)
         .to(mid, { keyframes: { opacity: [0, 1, 0.25, 1] }, duration: 0.35, stagger: { each: 0.06, from: "random" }, ease: "steps(3)" }, 0.95);
@@ -272,7 +315,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
       cards.forEach((card, i) => {
         const blur = { v: 0 };
         out
-          .to(card, { x: ROW[i][0] * u(), y: ROW[i][1] * u(), duration: 0.9, ease: "power3.inOut" }, 0.55 + i * 0.06)
+          .to(card, { x: ROW[i][0] * ux(), y: ROW[i][1] * uy(), duration: 0.9, ease: "power3.inOut" }, 0.55 + i * 0.06)
           .to(blur, {
             keyframes: { v: [0, 30, 0] },
             duration: 0.9,

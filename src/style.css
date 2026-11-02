@@ -3,8 +3,12 @@
   --text: #f2f0ea;
   --red: #db1a1f;
   --f-type: "Special Elite", "Courier Prime", monospace;
-  /* 1 design px of the 1920×1080 Figma frame */
-  --u: calc(100vw / 1920);
+  /* the 1920×1080 Figma frame always fits the viewport:
+     x follows width, y follows height, sizes use the smaller of the two */
+  --ux: calc(100vw / 1920);
+  --uy: calc(100vh / 1080);
+  --uy: calc(100dvh / 1080);
+  --u: min(var(--ux), var(--uy));
 }
 
 *,
@@ -41,8 +45,8 @@ p {
 .stage {
   position: relative;
   width: 100vw;
-  height: calc(1080 * var(--u));
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -58,10 +62,10 @@ p {
 }
 .bg__col {
   position: absolute;
-  left: calc(var(--x) * var(--u));
-  top: calc(var(--y) * var(--u));
+  left: calc(var(--x) * var(--ux));
+  top: calc(var(--y) * var(--uy));
   width: calc(156 * var(--u));
-  height: calc(var(--h) * var(--u));
+  height: calc(var(--h) * var(--uy));
   overflow: hidden;
   font-size: calc(18 * var(--u));
   line-height: 1.33;
@@ -73,14 +77,15 @@ p {
 .lines {
   position: absolute;
   left: 0;
-  top: calc(-1 * var(--u));
+  top: calc(-1 * var(--uy));
   width: 100%;
+  height: calc(1082 * var(--uy));
   pointer-events: none;
 }
 .lines svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 /* photos */
@@ -92,8 +97,8 @@ p {
   position: absolute;
   left: 0;
   top: 0;
-  width: calc(380 * var(--u));
-  height: calc(390 * var(--u));
+  width: calc(380 * var(--ux));
+  height: calc(390 * var(--uy));
   overflow: hidden;
   background: #151513;
   will-change: transform;
@@ -113,9 +118,9 @@ p {
 /* wordmark */
 .wordmark {
   position: absolute;
-  left: calc(30 * var(--u));
-  top: calc(30 * var(--u));
-  width: calc(1860 * var(--u));
+  left: calc(30 * var(--ux));
+  top: calc(30 * var(--uy));
+  width: calc(1860 * var(--ux));
   height: calc(352 * var(--u));
   margin: 0;
   pointer-events: none;
@@ -131,8 +136,8 @@ p {
 /* preloader UI */
 .pre__label {
   position: absolute;
-  right: calc(30 * var(--u));
-  top: calc(24 * var(--u));
+  right: calc(30 * var(--ux));
+  top: calc(24 * var(--uy));
   font-size: calc(18 * var(--u));
   text-transform: uppercase;
   white-space: nowrap;
@@ -143,17 +148,17 @@ p {
 }
 .pre__count {
   position: absolute;
-  left: calc(30 * var(--u));
-  bottom: calc(18 * var(--u));
+  left: calc(30 * var(--ux));
+  bottom: calc(18 * var(--uy));
   font-size: calc(100 * var(--u));
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .pre__bar {
   position: absolute;
-  left: calc(260 * var(--u));
-  top: calc(1048 * var(--u));
-  width: calc(1630 * var(--u));
+  left: calc(260 * var(--ux));
+  top: calc(1048 * var(--uy));
+  width: calc(1630 * var(--ux));
   height: calc(4 * var(--u));
   clip-path: inset(0 100% 0 0);
 }
@@ -161,8 +166,8 @@ p {
 /* main screen UI */
 .ui > * {
   position: absolute;
-  left: calc(var(--x) * var(--u));
-  top: calc(var(--y) * var(--u));
+  left: calc(var(--x) * var(--ux));
+  top: calc(var(--y) * var(--uy));
   font-size: calc(18 * var(--u));
   line-height: 1.2;
   white-space: nowrap;
@@ -172,6 +177,8 @@ p {
   gap: calc(20 * var(--u));
 }
 .ui__lang {
+  left: auto !important;
+  right: calc(30 * var(--ux));
   display: flex;
   align-items: center;
   gap: calc(6 * var(--u));
