@@ -1,6 +1,6 @@
 import { gsap } from "gsap";
 import { SLIDES, type Story } from "../content";
-import { uu } from "../viewport";
+import { uu, ux, uy } from "../viewport";
 
 /**
  * "Last news" slider: five pages of five stories in the photo strip.
@@ -22,7 +22,31 @@ import { uu } from "../viewport";
 const SLOT_OF_CARD = [1, 0, 2, 3, 4];
 /** ring position in the pager for each page (layout x − 485) */
 const RING_X = [98, 163, 225, 288, 351];
-const PAGE_TIME = 7; // seconds a page plays before the next one
+const SLOT_X = [-2, 384, 770, 1156, 1542]; // layout x of each slot
+const params = new URLSearchParams(location.search);
+// ?slidedemo: short pages, for previews
+const PAGE_TIME = params.has("slidedemo") ? 2.4 : 7; // seconds a page plays before the next one
+
+/**
+ * Five ways to change pages, picked with ?slide= (name or 1–5); "film" by default.
+ *   1 film    — the strip advances frame by frame: knocked out sideways with a hard
+ *               motion blur, the next photo slams in on an overexposed flash
+ *   2 flicker — photos blink out and back in, in random order, in the stepped
+ *               flicker of the wordmark letters
+ *   3 shutter — black slats drop over each photo like blinds and lift off the next one
+ *   4 scan    — a photocopier light bar sweeps across each card, the next photo
+ *               printed in behind it
+ *   5 deal    — the five cards gather into a pile, shuffle, and are dealt back out
+ *               with the new stories, as in the preloader
+ */
+const TRANSITIONS = ["film", "flicker", "shutter", "scan", "deal"] as const;
+type Transition = (typeof TRANSITIONS)[number];
+const pickTransition = (): Transition => {
+  const v = params.get("slide") ?? "";
+  const n = Number(v);
+  if (n >= 1 && n <= TRANSITIONS.length) return TRANSITIONS[n - 1];
+  return (TRANSITIONS as readonly string[]).includes(v) ? (v as Transition) : "film";
+};
 
 type Info = {
   el: HTMLElement;
@@ -131,6 +155,10 @@ export function initSlider({ reduceMotion = false } = {}) {
     gsap.set(c.info.el, { y: 0, yPercent: 101 });
     return c;
   });
+  // the grid lines run over the photos, as in the layout: the strip gets its own
+  // stacking layer so the cards' z-index can no longer lift them above the lines
+  const host = cards[0].parentElement;
+  if (host) host.style.zIndex = "0";
   // keyboard order follows the screen, left to right
   [...state].sort((a, b) => a.slot - b.slot).forEach((c) => c.card.parentElement?.appendChild(c.card));
   window.setTimeout(() => SLIDES.slice(1).flat().forEach((s) => imgFor(s.photo)), 400);
@@ -198,38 +226,172 @@ export function initSlider({ reduceMotion = false } = {}) {
   document.addEventListener("visibilitychange", syncPause);
 
   /* ---------- page change ---------- */
-  const swapCard = (c: Card, story: Story, dir: number) => {
-    const next = imgFor(story.photo);
-    const prev = c.img;
-    const b = { v: 0 };
-    const setBlur = () => c.blur?.setAttribute("stdDeviation", `${b.v.toFixed(1)} 0`);
-    return gsap
-      .timeline({
-        onStart: () => {
-          c.card.style.filter = `url(#mblur-${c.i})`;
-          next.hidden = false;
-          c.card.insertBefore(next, c.info.el);
-          gsap.set(next, { xPercent: dir * 22, opacity: 0, zIndex: 2 });
-          gsap.set(prev, { zIndex: 1 });
-        },
-        onComplete: () => {
-          prev.remove();
-          gsap.set(next, { clearProps: "transform,opacity,filter,zIndex" });
-          c.card.style.filter = "none";
-        },
-      })
-      .to(prev, { xPercent: -dir * 16, duration: 0.2, ease: "power2.in" }, 0)
-      .to(b, { v: 36, duration: 0.2, ease: "power2.in", onUpdate: setBlur }, 0)
-      .set(next, { opacity: 1 }, 0.12)
-      .to(next, { xPercent: 0, duration: 0.38, ease: "expo.out" }, 0.12)
-      .fromTo(next, { filter: "brightness(2.1) contrast(1.25)" }, { filter: "brightness(1) contrast(1)", duration: 0.4, ease: "expo.out" }, 0.12)
-      .to(b, { v: 0, duration: 0.38, ease: "expo.out", onUpdate: setBlur }, 0.12)
-      .add(() => {
-        c.img = next;
-        writeInfo(c, story);
-        if (c.open) openCard(c);
-      }, 0.14);
+  type Swap = { c: Card; story: Story; next: HTMLImageElement; prev: HTMLImageElement };
+  /** puts the next photo into the card, under the info card and above the current one */
+  const mount = (w: Swap, vars: gsap.TweenVars = {}) => {
+    w.next.hidden = false;
+    w.c.card.insertBefore(w.next, w.c.info.el);
+    gsap.set(w.next, { zIndex: 2, ...vars });
+    gsap.set(w.prev, { zIndex: 1 });
   };
+  /** the next photo is now the card's photo, with its story */
+  const commit = (w: Swap) => {
+    w.c.img = w.next;
+    writeInfo(w.c, w.story);
+    if (w.c.open) openCard(w.c);
+  };
+  const cleanup = (w: Swap) => {
+    w.prev.remove();
+    gsap.set(w.next, { clearProps: "transform,opacity,filter,zIndex,clipPath" });
+    w.c.card.style.filter = "none";
+  };
+  const blurOf = (c: Card) => (v: number) => c.blur?.setAttribute("stdDeviation", `${v.toFixed(1)} 0`);
+  /** position in the direction of travel: 0 for the first card to change */
+  const orderOf = (c: Card, dir: number) => (dir > 0 ? c.slot : 4 - c.slot);
+  const overlay = (c: Card, cls: string, html = "") => {
+    let el = c.card.querySelector<HTMLElement>(`.${cls}`);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = cls;
+      el.innerHTML = html;
+      c.card.insertBefore(el, c.info.el);
+    }
+    return el;
+  };
+
+  const RUN: Record<Transition, (tl: gsap.core.Timeline, swaps: Swap[], dir: number) => void> = {
+    film(tl, swaps, dir) {
+      for (const w of swaps) {
+        const b = { v: 0 };
+        const blur = blurOf(w.c);
+        const sub = gsap
+          .timeline({
+            onStart: () => {
+              w.c.card.style.filter = `url(#mblur-${w.c.i})`;
+              mount(w, { xPercent: dir * 22, opacity: 0 });
+            },
+            onComplete: () => cleanup(w),
+          })
+          .to(w.prev, { xPercent: -dir * 16, duration: 0.2, ease: "power2.in" }, 0)
+          .to(b, { v: 36, duration: 0.2, ease: "power2.in", onUpdate: () => blur(b.v) }, 0)
+          .set(w.next, { opacity: 1 }, 0.12)
+          .to(w.next, { xPercent: 0, duration: 0.38, ease: "expo.out" }, 0.12)
+          .fromTo(w.next, { filter: "brightness(2.1) contrast(1.25)" }, { filter: "brightness(1) contrast(1)", duration: 0.4, ease: "expo.out" }, 0.12)
+          .to(b, { v: 0, duration: 0.38, ease: "expo.out", onUpdate: () => blur(b.v) }, 0.12)
+          .add(() => commit(w), 0.14);
+        tl.add(sub, 0.08 + orderOf(w.c, dir) * 0.07);
+      }
+    },
+
+    flicker(tl, swaps) {
+      const order = [...swaps].sort(() => Math.random() - 0.5);
+      order.forEach((w, k) => {
+        const sub = gsap
+          .timeline({ onStart: () => mount(w, { opacity: 0 }), onComplete: () => cleanup(w) })
+          .to(w.prev, { keyframes: { opacity: [1, 0.15, 1, 0] }, duration: 0.26, ease: "steps(3)" }, 0)
+          .add(() => commit(w), 0.3)
+          .fromTo(w.next, { opacity: 0 }, { keyframes: { opacity: [0, 1, 0.25, 1] }, duration: 0.32, ease: "steps(3)" }, 0.32)
+          .fromTo(w.next, { filter: "brightness(1.9) contrast(1.2)" }, { filter: "brightness(1) contrast(1)", duration: 0.32, ease: "steps(3)" }, 0.32);
+        tl.add(sub, 0.08 + k * 0.07);
+      });
+    },
+
+    shutter(tl, swaps, dir) {
+      const SLATS = 7;
+      for (const w of swaps) {
+        const blinds = overlay(w.c, "photo__blinds", "<i></i>".repeat(SLATS));
+        const slats = [...blinds.children] as HTMLElement[];
+        const sub = gsap
+          .timeline({ onComplete: () => cleanup(w) })
+          .fromTo(slats, { scaleY: 0, transformOrigin: "50% 0%" }, { scaleY: 1, duration: 0.17, ease: "power3.in", stagger: 0.028 }, 0)
+          .add(() => {
+            mount(w);
+            w.prev.style.opacity = "0";
+            commit(w);
+          }, 0.17 + 0.028 * (SLATS - 1) + 0.04)
+          .set(slats, { transformOrigin: "50% 100%" }, ">")
+          .to(slats, { scaleY: 0, duration: 0.22, ease: "power3.out", stagger: 0.028 }, ">+0.04")
+          .fromTo(w.next, { filter: "brightness(1.6)" }, { filter: "brightness(1)", duration: 0.4, ease: "expo.out" }, "<");
+        tl.add(sub, 0.08 + orderOf(w.c, dir) * 0.06);
+      }
+    },
+
+    scan(tl, swaps, dir) {
+      for (const w of swaps) {
+        const bar = overlay(w.c, "photo__scan");
+        const p = { v: 0 };
+        // the bar travels across; the next photo is revealed up to the bar
+        const draw = () => {
+          const at = dir > 0 ? p.v : 1 - p.v;
+          w.next.style.clipPath = dir > 0 ? `inset(0 ${(1 - at) * 100}% 0 0)` : `inset(0 0 0 ${at * 100}%)`;
+          bar.style.left = `${at * 100}%`;
+        };
+        const sub = gsap
+          .timeline({
+            onStart: () => {
+              mount(w);
+              draw();
+            },
+            onComplete: () => {
+              gsap.set(bar, { opacity: 0 });
+              cleanup(w);
+            },
+          })
+          .set(bar, { opacity: 1 }, 0)
+          .to(p, { v: 1, duration: 0.6, ease: "power2.inOut", onUpdate: draw }, 0)
+          .fromTo(w.next, { filter: "brightness(1.7) contrast(1.3) grayscale(0.6)" }, { filter: "brightness(1) contrast(1) grayscale(0)", duration: 0.75, ease: "power2.out" }, 0)
+          .add(() => commit(w), 0.3)
+          .to(bar, { opacity: 0, duration: 0.12, ease: "steps(2)" }, 0.58);
+        tl.add(sub, 0.08 + orderOf(w.c, dir) * 0.09);
+      }
+    },
+
+    deal(tl, swaps, dir) {
+      const mid = SLOT_X[2];
+      const z = swaps.map((w) => w.c.card.style.zIndex);
+      // the outer cards travel furthest: pile them in from the outside in
+      const pileOrder = [...swaps].sort((a, b) => Math.abs(SLOT_X[b.c.slot] - mid) - Math.abs(SLOT_X[a.c.slot] - mid));
+      const g = 0.05;
+      pileOrder.forEach((w, k) => {
+        const b = { v: 0 };
+        const blur = blurOf(w.c);
+        const dx = (mid - SLOT_X[w.c.slot]) * ux();
+        tl.add(() => {
+          w.c.card.style.zIndex = String(40 + k);
+          w.c.card.style.filter = `url(#mblur-${w.c.i})`;
+        }, g + k * 0.04)
+          .to(w.c.card, { x: dx + (Math.random() * 30 - 15) * ux(), y: (Math.random() * 24 - 12) * uy(), rotation: Math.random() * 8 - 4, duration: 0.42, ease: "power3.in" }, g + k * 0.04)
+          .to(b, { keyframes: { v: [0, 28, 6] }, duration: 0.42, ease: "none", easeEach: "power2.inOut", onUpdate: () => blur(b.v) }, g + k * 0.04);
+      });
+      // in the pile: every card takes its new photo, and the top few are shuffled with a flick
+      const inPile = g + 0.42 + 0.04 * 4;
+      tl.add(() => swaps.forEach((w) => (mount(w), commit(w), w.prev.remove())), inPile);
+      [...pileOrder].reverse().slice(0, 3).forEach((w, k) => {
+        const b = { v: 30 };
+        const blur = blurOf(w.c);
+        const t = inPile + 0.05 + k * 0.11;
+        tl.add(() => (w.c.card.style.zIndex = String(60 + k)), t)
+          .fromTo(w.c.card, { x: `+=${(k % 2 ? -1 : 1) * 60 * ux()}` }, { x: `-=${(k % 2 ? -1 : 1) * 60 * ux()}`, duration: 0.2, ease: "expo.out" }, t)
+          .fromTo(b, { v: 30 }, { v: 4, duration: 0.2, ease: "power2.out", onUpdate: () => blur(b.v) }, t);
+      });
+      // dealt back out in the direction of travel
+      const dealAt = inPile + 0.05 + 3 * 0.11 + 0.05;
+      swaps.forEach((w) => {
+        const b = { v: 6 };
+        const blur = blurOf(w.c);
+        const t = dealAt + orderOf(w.c, dir) * 0.07;
+        tl.to(w.c.card, { x: 0, y: 0, rotation: 0, duration: 0.55, ease: "power3.out" }, t)
+          .to(b, { keyframes: { v: [6, 30, 0] }, duration: 0.55, ease: "none", easeEach: "power2.inOut", onUpdate: () => blur(b.v) }, t)
+          .fromTo(w.next, { filter: "brightness(1.5)" }, { filter: "brightness(1)", duration: 0.5, ease: "expo.out" }, t + 0.25)
+          .add(() => {
+            gsap.set(w.c.card, { clearProps: "transform" });
+            w.c.card.style.zIndex = z[swaps.indexOf(w)];
+            cleanup(w);
+          }, t + 0.56);
+      });
+    },
+  };
+  const transition = pickTransition();
 
   async function go(target: number, dir: number) {
     if (busy || target === page) return;
@@ -270,11 +432,10 @@ export function initSlider({ reduceMotion = false } = {}) {
     tl.to(ringState, { p: 0, duration: 0.22, ease: "power2.in", onUpdate: drawRing }, 0)
       .to(ringState, { x: RING_X[target], duration: 0.5, ease: "expo.inOut", onUpdate: drawRing }, 0.05)
       .to(ringState, { keyframes: { blur: [0, 7, 0] }, duration: 0.5, ease: "none", easeEach: "power2.inOut", onUpdate: drawRing }, 0.05);
-    // the strip advances frame by frame in the direction of travel
-    state.forEach((c, k) => {
-      const order = dir > 0 ? c.slot : 4 - c.slot;
-      tl.add(swapCard(c, stories[k], dir), 0.08 + order * 0.07);
-    });
+    // the strip changes, in the chosen style
+    const swaps: Swap[] = state.map((c, k) => ({ c, story: stories[k], next: imgFor(stories[k].photo), prev: c.img }));
+    if (transition === "deal") state.filter((c) => c.open).forEach(closeCard);
+    RUN[transition](tl, swaps, dir);
   }
 
   buttons.forEach((btn, k) => btn.addEventListener("click", () => go(k, k > page ? 1 : -1)));

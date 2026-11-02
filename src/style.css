@@ -386,7 +386,7 @@ p {
   top: calc(142 * var(--uy));
   width: 100%;
   height: calc(248 * var(--uy));
-  z-index: 3;
+  z-index: 4;
   color: #fff;
   /* glass: frosted backdrop under a 60% dark gradient, lit along the top edge */
   background: linear-gradient(250deg, rgba(0, 0, 0, 0.6) 0%, rgba(45, 45, 45, 0.6) 100%);
@@ -442,7 +442,7 @@ p {
 }
 .pi__date {
   --b: 228;
-  --s: 14; /* layout: 12 */
+  --s: 16; /* layout: 12 */
   right: calc(20 * var(--ux));
   color: rgba(255, 255, 255, 0.5);
 }
@@ -530,4 +530,42 @@ p {
   .pi__more::before { transition: none; }
   .pi__more:hover::before,
   .pi__more:focus-visible::before { animation: none; }
+}
+
+/* ---------- last news: page-change overlays (?slide=shutter / scan) ---------- */
+.photo__blinds {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+.photo__blinds i {
+  flex: 1;
+  margin-bottom: -1px; /* no hairline gaps between slats */
+  background: #0b0b0a;
+  transform: scaleY(0);
+}
+.photo__scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(60 * var(--ux));
+  margin-left: calc(-30 * var(--ux));
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.14) 32%,
+    rgba(255, 255, 255, 0.9) 47%,
+    #fff 50%,
+    rgba(255, 255, 255, 0.9) 53%,
+    rgba(255, 255, 255, 0.14) 68%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  mix-blend-mode: screen;
 }
