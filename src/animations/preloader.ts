@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { BG_COLUMNS, NEWS_PHOTOS } from "../content";
+import { columnText } from "../i18n";
 import { startFlicker } from "./flicker";
 import { prepareTypewriter } from "./typewriter";
 import linesSvg from "../assets/lines.svg?raw";
@@ -69,14 +70,15 @@ function buildWordmark() {
 
 function buildBackground() {
   const host = $("[data-bg-cols]");
-  for (const c of BG_COLUMNS) {
+  BG_COLUMNS.forEach((c, i) => {
     const p = document.createElement("p");
     p.className = "bg__col";
     p.style.cssText = `--x:${c.x};--b:${c.b}`;
-    p.textContent = c.text;
+    p.dataset.en = c.text;
+    p.textContent = columnText(i, c.text);
     p.setAttribute("aria-hidden", "true");
     host.appendChild(p);
-  }
+  });
   return $$(".bg__col", host);
 }
 
@@ -199,9 +201,9 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   gsap.set(ui, { opacity: 0 });
   const typeTargets = [
     ...$$("[data-ui] .t"),
-    ...$$("[data-ui] .gt"),
+    ...$$("[data-ui] .gt:not([data-notype])"),
   ] as (HTMLElement | HTMLInputElement)[];
-  const icons = $$("[data-ui] .ico");
+  const icons = $$("[data-ui] .ico, [data-ui] [data-flick]");
   const typeIn = prepareTypewriter(typeTargets, { stagger: 90, min: 26, max: 62 });
   toHome(); // middle letters sit at their final spots, hidden
   [R, M].forEach((g, i) => {

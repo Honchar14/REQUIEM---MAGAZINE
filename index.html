@@ -54,7 +54,7 @@
 
       <!-- main screen UI -->
       <div class="ui" data-ui>
-        <p class="t" style="--x:30;--b:418" data-flicker>Under Watch: 2026</p>
+        <p class="t" style="--x:30;--b:418" data-flicker data-i18n="underWatch">Under Watch: 2026</p>
 
         <nav class="ui__nav" aria-label="Sections">
           <a class="t" href="#" style="--x:1213;--b:418">Fashion</a>
@@ -64,14 +64,17 @@
           <a class="t" href="#" style="--x:1645;--b:418">Culture</a>
         </nav>
 
-        <a class="grp ui__lang" href="#" style="--r:30;--y:405;--w:81;--h:14">
+        <!-- language: EN / ES (the globe toggles); the label flicks on instead of being typed -->
+        <div class="grp ui__lang" role="group" aria-label="Language" style="--r:30;--y:405;--w:81;--h:14">
           <img class="ico" style="--ix:0;--iy:0;--iw:14;--ih:14" src="/media/icons/globe.svg" alt="" />
-          <span class="gt" style="--gr:0;--gb:13.4">EN - ES</span>
-        </a>
+          <span class="gt" style="--gr:0;--gb:13.4" data-notype data-flick
+            ><button type="button" data-lang="en" aria-pressed="true">EN</button> - <button type="button" data-lang="es" aria-pressed="false">ES</button></span
+          >
+        </div>
 
         <!-- pager: the ring marks the page on screen and fills up as the autoplay runs -->
         <div class="grp ui__pager" style="--x:485;--y:451;--w:373;--h:34" data-pager>
-          <span class="gt" style="--gx:0;--gb:23">LAST NEWS:</span>
+          <span class="gt" style="--gx:0;--gb:23" data-i18n="lastNews">LAST NEWS:</span>
           <span class="ico ui__ring" style="--ix:98;--iy:0;--iw:34;--ih:34" data-ring aria-hidden="true">
             <img class="ui__ring-base" src="/media/icons/circle-stroke.svg" alt="" />
             <img class="ui__ring-fill" src="/media/icons/circle-stroke.svg" alt="" />
@@ -87,8 +90,8 @@
           <button class="gt" type="button" style="--gx:363;--gb:23" data-page="4" aria-label="News, page 5">5</button>
         </div>
 
-        <p class="t" style="--x:485;--b:1050" data-flicker>Fashion feature</p>
-        <p class="t" style="--x:1213;--b:1050" data-flicker>Seven artists under 25 who refuse to be polished</p>
+        <p class="t" style="--x:485;--b:1050" data-flicker data-i18n="feature">Fashion feature</p>
+        <p class="t" style="--x:1213;--b:1050" data-flicker data-i18n="tagline">Seven artists under 25 who refuse to be polished</p>
 
         <label class="grp ui__search" style="--x:30;--y:1026;--w:175;--h:24">
           <!-- hover: a REC light comes on and the text steps aside for it -->

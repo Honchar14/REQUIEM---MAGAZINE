@@ -318,10 +318,7 @@ p {
   transform-origin: 0% 50%;
 }
 /* the items after the hovered one move right by what it gained: 0.05em per character */
-.ui__nav:has(> a:nth-child(1):is(:hover, :focus-visible)) { --push: 7; } /* Fashion */
-.ui__nav:has(> a:nth-child(2):is(:hover, :focus-visible)) { --push: 5; } /* Music */
-.ui__nav:has(> a:nth-child(3):is(:hover, :focus-visible)) { --push: 17; } /* Art & Photography */
-.ui__nav:has(> a:nth-child(4):is(:hover, :focus-visible)) { --push: 9; } /* Film & TV */
+/* --push is the hovered word's length in characters, set from JS (it changes with the language) */
 .ui__nav > a:is(:hover, :focus-visible) ~ a {
   transform: translateX(calc(var(--push, 0) * 0.05 * 18 * var(--u)));
 }
@@ -506,7 +503,7 @@ p {
 .pi__more:hover,
 .pi__more:focus-visible {
   letter-spacing: 0;
-  width: calc((122 * var(--k) + 9 * 0.05 * 16) * var(--u));
+  width: calc((122 * var(--k) + var(--n, 9) * 0.05 * 16) * var(--u));
 }
 .pi__more:hover::before,
 .pi__more:focus-visible::before {
@@ -516,7 +513,7 @@ p {
 }
 .pi__more:hover .pi__arrow,
 .pi__more:focus-visible .pi__arrow {
-  transform: translateX(calc(9 * 0.05 * 16 * var(--u)));
+  transform: translateX(calc(var(--n, 9) * 0.05 * 16 * var(--u)));
 }
 
 .pi__more:focus-visible {
@@ -568,4 +565,32 @@ p {
     rgba(255, 255, 255, 0) 100%
   );
   mix-blend-mode: screen;
+}
+
+/* ---------- language switch ---------- */
+.ui__lang button {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: opacity 0.2s steps(2);
+}
+/* the language not in use is dimmed */
+.ui__lang button[aria-pressed="false"] {
+  opacity: 0.5;
+}
+.ui__lang button:hover,
+.ui__lang button:focus-visible {
+  opacity: 1;
+}
+.ui__lang button:focus-visible {
+  outline: 1px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: calc(3 * var(--u));
+}
+.ui__lang .ico {
+  cursor: pointer;
 }

@@ -18,8 +18,9 @@ export function initSearchHover() {
   const label = document.querySelector<HTMLElement>(".ui__search");
   const input = label?.querySelector<HTMLInputElement>("input");
   if (!label || !input) return;
-  const word = input.placeholder || "Search";
-  const short = word.slice(0, 3); // "Sea"
+  // the word follows the language switch (it writes data-word)
+  let word = input.dataset.word || input.placeholder || "Search";
+  let short = word.slice(0, 3); // "Sea"
 
   let timer = 0;
   let running = false;
@@ -58,6 +59,8 @@ export function initSearchHover() {
 
   const start = () => {
     if (running || document.activeElement === input || input.value) return;
+    word = input.dataset.word || word;
+    short = word.slice(0, 3);
     running = true;
     hold(word.length, 600, () => erase(word.length - 1));
   };

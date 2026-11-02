@@ -1,6 +1,7 @@
 import { gsap } from "gsap";
 import { SLIDES, type Story } from "../content";
 import { uu, ux, uy } from "../viewport";
+import { localized, t } from "../i18n";
 
 /**
  * "Last news" slider: five pages of five stories in the photo strip.
@@ -98,7 +99,11 @@ function writeInfo(c: Card, story: Story) {
   body.textContent = story.body;
   date.textContent = story.date;
   more.href = story.href ?? "#";
-  more.setAttribute("aria-label", `Read more: ${story.title}, ${story.sub}`);
+  const label = t().readMore;
+  more.firstChild!.textContent = label;
+  // the hover opens the tracking by 0.05em per letter: the arrow and line move by that much
+  more.style.setProperty("--n", String(label.length));
+  more.setAttribute("aria-label", t().readMoreLabel(story.title, story.sub));
   c.img.alt = `${story.title}: ${story.sub}`;
 }
 
@@ -145,7 +150,7 @@ export function initSlider({ reduceMotion = false } = {}) {
 
   const state: Card[] = cards.map((card, i) => {
     const slot = SLOT_OF_CARD[i];
-    const story = SLIDES[0][slot];
+    const story = localized(SLIDES[0][slot], 0, slot);
     // the preloader leaves every photo in every card; keep only the one on show
     const imgs = [...card.querySelectorAll("img")];
     const img = imgs.find((im) => !im.hidden) ?? imgs[0];
@@ -401,7 +406,7 @@ export function initSlider({ reduceMotion = false } = {}) {
     progress = undefined;
     page = target;
     buttons.forEach((btn, k) => (k === page ? btn.setAttribute("aria-current", "true") : btn.removeAttribute("aria-current")));
-    const stories = state.map((c) => SLIDES[target][c.slot]);
+    const stories = state.map((c) => localized(SLIDES[target][c.slot], target, c.slot));
 
     if (reduceMotion) {
       state.forEach((c, k) => {
@@ -445,6 +450,14 @@ export function initSlider({ reduceMotion = false } = {}) {
     if (t.closest("input, textarea, [contenteditable]")) return;
     if (e.key === "ArrowRight") go((page + 1) % SLIDES.length, 1);
     if (e.key === "ArrowLeft") go((page + SLIDES.length - 1) % SLIDES.length, -1);
+  });
+
+  // language switch: the cards on screen take the new copy (an open card replays its entrance)
+  document.addEventListener("requiem:lang", () => {
+    for (const c of state) {
+      writeInfo(c, localized(SLIDES[page][c.slot], page, c.slot));
+      if (c.open) openCard(c);
+    }
   });
 
   drawRing();
