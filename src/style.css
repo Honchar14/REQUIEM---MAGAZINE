@@ -430,12 +430,15 @@ p {
   text-align: center;
   color: rgba(255, 255, 255, 0.5);
 }
+/* the story text: bigger than the layout's 14px and kept to a few lines */
 .pi__body {
-  --b: 112.67;
-  --s: 14;
+  --b: 116; /* first baseline */
+  --s: 18;
   left: calc(20 * var(--ux));
   width: calc(340 * var(--ux));
-  white-space: pre-line;
+  white-space: normal;
+  line-height: 1.12;
+  top: calc(var(--b) * var(--uy) - (var(--bl) + 0.06) * var(--s) * var(--u));
 }
 .pi__date {
   --b: 228;
@@ -450,6 +453,9 @@ p {
   /* the link box spans text, arrow and underline */
   width: calc(122 * var(--u));
   height: calc(var(--s) * var(--u) + 10 * var(--u));
+  transition:
+    letter-spacing 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .pi__more img,
 .pi__more i {
@@ -473,9 +479,50 @@ p {
   background: url("/media/icons/line-nav.svg") 0 0 / 100% 100% no-repeat;
   transform-origin: 0% 50%;
 }
+/* Read more hover, the same as the menu: tracking opens from -5% to 0 (the
+   arrow and the line make room: 0.05em × 9 letters), a blinking REC dot comes
+   on 9px to the left, and the underline is drawn in again from the left */
+.pi__more::before {
+  content: "";
+  position: absolute;
+  left: calc(-9 * var(--u));
+  top: calc(var(--bl) * 14 * var(--u) - 7 * var(--u));
+  width: calc(5 * var(--u));
+  height: calc(5 * var(--u));
+  border-radius: 50%;
+  background: #d00000;
+  box-shadow:
+    0 0 calc(7.8 * var(--u)) #d00000,
+    0 0 calc(4.2 * var(--u)) #d00000;
+  opacity: 0;
+  transform: scale(0);
+  transition:
+    opacity 0.12s linear,
+    transform 0.22s cubic-bezier(0.3, 1.6, 0.5, 1);
+  pointer-events: none;
+}
+.pi__more:hover,
+.pi__more:focus-visible {
+  letter-spacing: 0;
+  width: calc((122 + 9 * 0.05 * 14) * var(--u));
+}
+.pi__more:hover::before,
+.pi__more:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+  animation: rec-blink 1.1s step-end 0.35s infinite;
+}
 .pi__more:hover .pi__arrow,
 .pi__more:focus-visible .pi__arrow {
-  transform: translateX(calc(4 * var(--u)));
+  transform: translateX(calc(9 * 0.05 * 14 * var(--u)));
+}
+.pi__more:hover .pi__line,
+.pi__more:focus-visible .pi__line {
+  animation: pi-redraw 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pi-redraw {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
 }
 .pi__more:focus-visible {
   outline: 1px dashed rgba(255, 255, 255, 0.6);
@@ -483,5 +530,11 @@ p {
 }
 @media (prefers-reduced-motion: reduce) {
   .photo > img,
-  .pi__arrow { transition: none; }
+  .pi__arrow,
+  .pi__more,
+  .pi__more::before { transition: none; }
+  .pi__more:hover::before,
+  .pi__more:focus-visible::before,
+  .pi__more:hover .pi__line,
+  .pi__more:focus-visible .pi__line { animation: none; }
 }
