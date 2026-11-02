@@ -72,7 +72,7 @@ function buildBackground() {
   for (const c of BG_COLUMNS) {
     const p = document.createElement("p");
     p.className = "bg__col";
-    p.style.cssText = `--x:${c.x};--y:${c.y};--h:${c.h}`;
+    p.style.cssText = `--x:${c.x};--b:${c.b}`;
     p.textContent = c.text;
     p.setAttribute("aria-hidden", "true");
     host.appendChild(p);
@@ -172,25 +172,26 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const count = $("[data-pre-count]");
   const bar = $("[data-pre-bar]");
   const label = $("[data-pre-label]");
-  const idx = $("[data-pre-idx]");
   const ui = $$("[data-ui] > *");
   const blurs = $$<SVGFEGaussianBlurElement>(".sr-filters feGaussianBlur");
 
-  const stopBgFlicker = startFlicker(cols, { rate: 0.006, interval: 70 });
+  let stopBgFlicker = () => {};
 
   const finish = () => {
+    stopBgFlicker(); // the typewriter flicker belongs to the preloader only
     settleRow(cards);
     toHome();
     relayout = () => (word.layout(), toHome());
     pre.remove();
     html.classList.remove("is-loading");
-    startFlicker($$("[data-ui] [data-flicker]"), { rate: 0.03, interval: 120 });
   };
 
   if (reduceMotion) {
     finish();
     return Promise.resolve();
   }
+
+  stopBgFlicker = startFlicker(cols, { rate: 0.006, interval: 70 });
 
   /* ---------- initial state ---------- */
   gsap.set(tex, { opacity: 0 });
@@ -218,7 +219,10 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const render = () => {
     const p = Math.round(shown.p * 100);
     count.textContent = `${pad(p)}%`;
-    bar.style.clipPath = `inset(0 ${100 - shown.p * 100}% 0 0)`;
+    const left = count.getBoundingClientRect().right;
+    const end = 1890 * ux();
+    bar.style.left = `${left}px`;
+    bar.style.width = `${Math.max(0, end - left) * shown.p}px`;
   };
 
   /* ---------- photo shuffle with motion blur ---------- */
@@ -231,7 +235,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     photoIdx = (photoIdx + 1) % NEWS_PHOTOS.length;
     showPhoto(card, photoIdx);
     card.style.zIndex = String(++z);
-    idx.textContent = `${pad(photoIdx + 1)} / ${pad(NEWS_PHOTOS.length)}`;
     const dir = Math.random() < 0.5 ? -1 : 1;
     const blur = { v: 38 };
     gsap.fromTo(
@@ -295,8 +298,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
       cards.forEach((c, i) => showPhoto(c, i));
       const out = gsap.timeline({
         onComplete: () => {
-          stopBgFlicker();
-          startFlicker(cols, { rate: 0.004, interval: 110 });
           finish();
           resolve();
         },

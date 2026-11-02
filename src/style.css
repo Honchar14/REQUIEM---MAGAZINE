@@ -1,6 +1,6 @@
 :root {
   --bg: #0b0b0a;
-  --text: #f2f0ea;
+  --text: #ffffff;
   --red: #db1a1f;
   --f-type: "Special Elite", "Courier Prime", monospace;
   /* the 1920×1080 Figma frame always fits the viewport:
@@ -10,6 +10,9 @@
   --uy: calc(100vh / 1080);
   --uy: calc(100dvh / 1080);
   --u: min(var(--ux), var(--uy));
+  /* baseline position inside a line-height:1 box, as a fraction of font size;
+     measured from the real font at runtime (viewport.ts) */
+  --bl: 0.7;
 }
 
 *,
@@ -65,14 +68,12 @@ p {
 .bg__col {
   position: absolute;
   left: calc(var(--x) * var(--ux));
-  top: calc(var(--y) * var(--uy));
+  top: calc(var(--b) * var(--uy) - var(--bl) * 18 * var(--u));
   width: calc(156 * var(--u));
-  height: calc(var(--h) * var(--uy));
-  overflow: hidden;
   font-size: calc(18 * var(--u));
-  line-height: 1.33;
+  line-height: 1;
+  letter-spacing: -0.05em;
   opacity: 0.1;
-  word-break: break-word;
 }
 
 /* grid lines: the designer's vector lines, 1920×1082 */
@@ -135,111 +136,109 @@ p {
   fill: var(--text);
 }
 
-/* preloader UI */
-.pre__label {
+/* ---------- text placed by baseline, exactly as in Figma ---------- */
+.t {
   position: absolute;
-  right: calc(30 * var(--ux));
-  top: calc(24 * var(--uy));
+  left: calc(var(--x) * var(--ux));
+  top: calc(var(--b) * var(--uy) - var(--bl) * 18 * var(--u));
   font-size: calc(18 * var(--u));
-  text-transform: uppercase;
+  line-height: 1;
+  letter-spacing: -0.05em;
   white-space: nowrap;
 }
-.pre__idx {
-  opacity: 0.55;
-  margin-left: 0.4em;
+.t[style*="--r"] {
+  left: auto;
+  right: calc(var(--r) * var(--ux));
+}
+
+/* groups: the box sits on the frame grid, children are laid out inside in --u */
+.grp {
+  position: absolute;
+  left: calc(var(--x) * var(--ux));
+  top: calc(var(--y) * var(--uy));
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  display: block;
+}
+.grp[style*="--r"] {
+  left: auto;
+  right: calc(var(--r) * var(--ux));
+}
+.grp .ico {
+  position: absolute;
+  left: calc(var(--ix) * var(--u));
+  top: calc(var(--iy) * var(--u));
+  width: calc(var(--iw) * var(--u));
+  height: calc(var(--ih) * var(--u));
+  display: block;
+}
+.grp .gt {
+  position: absolute;
+  left: calc(var(--gx) * var(--u));
+  top: calc(var(--gb) * var(--u) - var(--bl) * 18 * var(--u));
+  font-size: calc(18 * var(--u));
+  line-height: 1;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+}
+.grp .gt[style*="--gr"] {
+  left: auto;
+  right: calc(var(--gr) * var(--u));
+}
+/* the layout's "--" is set tighter than the rest of the type */
+.grp .gt--dash {
+  letter-spacing: -0.22em;
+}
+
+/* preloader */
+.pre__label {
+  text-transform: uppercase;
 }
 .pre__count {
   position: absolute;
   left: calc(30 * var(--ux));
-  bottom: calc(18 * var(--uy));
+  top: calc(1051 * var(--uy) - var(--bl) * 100 * var(--u));
   font-size: calc(100 * var(--u));
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.pre__bar {
-  position: absolute;
-  left: calc(260 * var(--ux));
-  top: calc(1048 * var(--uy));
-  width: calc(1630 * var(--ux));
-  height: calc(4 * var(--u));
-  clip-path: inset(0 100% 0 0);
-}
-
-/* main screen UI */
-.ui > * {
-  position: absolute;
-  left: calc(var(--x) * var(--ux));
-  top: calc(var(--y) * var(--uy));
-  font-size: calc(18 * var(--u));
-  line-height: 1.2;
+  letter-spacing: -0.05em;
   white-space: nowrap;
 }
-.ui__nav {
-  display: flex;
-  gap: calc(20 * var(--u));
-}
-.ui__lang {
-  left: auto !important;
-  right: calc(30 * var(--ux));
-  display: flex;
-  align-items: center;
-  gap: calc(6 * var(--u));
-}
-.ui__lang img {
-  width: calc(16 * var(--u));
-  height: calc(16 * var(--u));
-}
-.ui__pager {
-  display: flex;
-  align-items: center;
-  gap: calc(14 * var(--u));
-}
-.ui__pager b {
-  position: relative;
-  font-weight: 400;
-  width: calc(14 * var(--u));
-  text-align: center;
-}
-.ui__pager b img {
+/* the bar starts right after the counter and grows to x=1890 (geometry set in JS) */
+.pre__bar {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(34 * var(--u));
-  height: calc(34 * var(--u));
-  transform: translate(-50%, -52%);
+  left: 0;
+  top: calc(1046 * var(--uy));
+  width: 0;
+  height: calc(4 * var(--u));
+  overflow: hidden;
 }
-.ui__pager i {
+.pre__bar img {
   display: block;
-  width: calc(18 * var(--u));
-  height: 1px;
-  background: currentColor;
-}
-.ui__search {
-  display: block;
-  width: calc(175 * var(--u));
-}
-.ui__search input {
   width: 100%;
-  padding: 0 calc(22 * var(--u)) calc(4 * var(--u)) 0;
+  height: 100%;
+  transform: rotate(180deg);
+}
+
+/* main screen */
+.ui__search input {
+  width: calc(150 * var(--u));
+  height: calc(18 * var(--u));
+  padding: 0;
+  margin: 0;
   border: 0;
   outline: 0;
   background: none;
   color: inherit;
-  font: inherit;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .ui__search input::placeholder {
   color: inherit;
+  opacity: 1;
 }
-.ui__search img:not(.ui__search-line) {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: calc(16 * var(--u));
-}
-.ui__search-line {
-  display: block;
-  width: 100%;
-  height: calc(4 * var(--u));
+.ui__search input::-webkit-search-cancel-button {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

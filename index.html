@@ -29,11 +29,11 @@
         <div class="bg__cols" data-bg-cols></div>
       </div>
 
-      <!-- grid lines (drawn on exit) -->
-      <div class="lines" data-lines aria-hidden="true"></div>
-
       <!-- news photos: stack while loading, row on the main screen -->
       <div class="photos" data-photos></div>
+
+      <!-- grid lines (drawn on exit), above the photos as in the layout -->
+      <div class="lines" data-lines aria-hidden="true"></div>
 
       <!-- wordmark: R and M live through the whole preloader -->
       <h1 class="wordmark" aria-label="REQUIEM">
@@ -50,34 +50,51 @@
         </svg>
       </h1>
 
-      <!-- preloader UI -->
+      <!-- preloader UI. Positions are Figma px of the 1920×1080 frame; --b is the text baseline -->
       <div class="pre" data-pre aria-live="polite">
-        <p class="pre__label" data-pre-label><span data-flicker>Latest news</span> <span class="pre__idx" data-pre-idx>01 / 05</span></p>
+        <p class="t pre__label" style="--r:30;--b:36" data-pre-label>Latest news</p>
         <p class="pre__count" data-pre-count>00%</p>
-        <img class="pre__bar" data-pre-bar src="/media/brand/line-bar.svg" alt="" />
+        <div class="pre__bar" data-pre-bar><img src="/media/brand/line-bar.svg" alt="" /></div>
       </div>
 
       <!-- main screen UI -->
       <div class="ui" data-ui>
-        <p class="ui__watch" style="--x:30;--y:405" data-flicker>Under Watch: 2026</p>
-        <nav class="ui__nav" style="--x:1213;--y:405">
-          <a href="#" data-flicker>Fashion</a>
-          <a href="#" data-flicker>Music</a>
-          <a href="#" data-flicker>Art &amp; Photography</a>
-          <a href="#" data-flicker>Film &amp; TV</a>
-          <a href="#" data-flicker>Culture</a>
+        <p class="t" style="--x:30;--b:418">Under Watch: 2026</p>
+
+        <nav class="ui__nav" aria-label="Sections">
+          <a class="t" href="#" style="--x:1213;--b:418">Fashion</a>
+          <a class="t" href="#" style="--x:1301;--b:418">Music</a>
+          <a class="t" href="#" style="--x:1371;--b:418">Art &amp; Photography</a>
+          <a class="t" href="#" style="--x:1544;--b:418">Film &amp; TV</a>
+          <a class="t" href="#" style="--x:1645;--b:418">Culture</a>
         </nav>
-        <a class="ui__lang" href="#" style="--x:1809;--y:402"><img src="/media/icons/globe.svg" alt="" /><span data-flicker>EN - ES</span></a>
-        <div class="ui__pager" style="--x:485;--y:451">
-          <span data-flicker>LAST NEWS:</span>
-          <b class="is-active">1<img src="/media/icons/circle-stroke.svg" alt="" /></b><i></i><b>2</b><i></i><b>3</b><i></i><b>4</b><i></i><b>5</b>
+
+        <a class="grp ui__lang" href="#" style="--r:30;--y:405;--w:81;--h:14">
+          <img class="ico" style="--ix:0;--iy:0;--iw:14;--ih:14" src="/media/icons/globe.svg" alt="" />
+          <span class="gt" style="--gr:0;--gb:13.4">EN - ES</span>
+        </a>
+
+        <div class="grp ui__pager" style="--x:485;--y:451;--w:373;--h:34">
+          <span class="gt" style="--gx:0;--gb:23">LAST NEWS:</span>
+          <img class="ico" style="--ix:98;--iy:0;--iw:34;--ih:34" src="/media/icons/circle-stroke.svg" alt="" />
+          <span class="gt" style="--gx:110;--gb:23">1</span>
+          <span class="gt gt--dash" style="--gx:137;--gb:23">--</span>
+          <span class="gt" style="--gx:174;--gb:23">2</span>
+          <span class="gt gt--dash" style="--gx:201;--gb:23">--</span>
+          <span class="gt" style="--gx:237;--gb:23">3</span>
+          <span class="gt gt--dash" style="--gx:264;--gb:23">--</span>
+          <span class="gt" style="--gx:299;--gb:23">4</span>
+          <span class="gt gt--dash" style="--gx:327;--gb:23">--</span>
+          <span class="gt" style="--gx:363;--gb:23">5</span>
         </div>
-        <p class="ui__cap" style="--x:485;--y:1037" data-flicker>Fashion feature</p>
-        <p class="ui__cap" style="--x:1213;--y:1037" data-flicker>Seven artists under 25 who refuse to be polished</p>
-        <label class="ui__search" style="--x:30;--y:1019">
-          <input type="search" placeholder="Search" />
-          <img src="/media/icons/search.svg" alt="" />
-          <img class="ui__search-line" src="/media/icons/line.svg" alt="" />
+
+        <p class="t" style="--x:485;--b:1050">Fashion feature</p>
+        <p class="t" style="--x:1213;--b:1050">Seven artists under 25 who refuse to be polished</p>
+
+        <label class="grp ui__search" style="--x:30;--y:1026;--w:175;--h:24">
+          <input class="gt" style="--gx:0;--gb:13.6" type="search" placeholder="Search" aria-label="Search" />
+          <img class="ico" style="--ix:159;--iy:0;--iw:14;--ih:14" src="/media/icons/search.svg" alt="" />
+          <img class="ico" style="--ix:0;--iy:21;--iw:175;--ih:3" src="/media/icons/line-search.svg" alt="" />
         </label>
       </div>
     </main>
