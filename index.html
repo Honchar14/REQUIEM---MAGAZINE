@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="is-loading">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,48 +8,92 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;700&family=Archivo+Black&family=Courier+Prime:wght@400;700&family=Special+Elite&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=block" rel="stylesheet" />
   </head>
   <body>
-    <div class="grain" aria-hidden="true"></div>
+    <!-- motion blur filters for the preloader photo stack -->
+    <svg class="sr-filters" width="0" height="0" aria-hidden="true">
+      <defs>
+        <filter id="mblur-0" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+        <filter id="mblur-1" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+        <filter id="mblur-2" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+        <filter id="mblur-3" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+        <filter id="mblur-4" x="-30%" y="-10%" width="160%" height="120%"><feGaussianBlur stdDeviation="0 0" /></filter>
+      </defs>
+    </svg>
 
-    <header class="topbar">
-      <a class="lang" href="#"><img src="/assets/icons/globe.svg" alt="" width="20" height="20" />EN-US</a>
-      <span class="issue">ISSUE_07 // WINTER 2026</span>
-      <nav class="nav">
-        <a href="#">Fashion</a>
-        <a href="#" class="is-new">Music</a>
-        <a href="#">Art &amp; Photo</a>
-        <a href="#">Film &amp; TV</a>
-        <a href="#" class="is-new">Culture</a>
-        <a href="#" class="is-new">Wanted 100</a>
-      </nav>
-    </header>
+    <main class="stage" data-stage>
+      <!-- background: texture + faint flickering type -->
+      <div class="bg" data-bg>
+        <div class="bg__tex"></div>
+        <div class="bg__cols" data-bg-cols></div>
+      </div>
 
-    <main>
-      <section class="hero" data-section="hero">
-        <h1 class="wordmark" data-anim="wordmark">REQUIEM</h1>
-        <p class="tagline" data-anim="fade">Culture, filed under evidence.</p>
-      </section>
+      <!-- grid lines (drawn on exit) -->
+      <div class="lines" data-lines aria-hidden="true">
+        <i class="ln ln--h" style="--y:526"></i>
+        <i class="ln ln--h ln--soft" style="--y:534"></i>
+        <i class="ln ln--h" style="--y:924"></i>
+        <i class="ln ln--h ln--soft" style="--y:932"></i>
+        <i class="ln ln--v" style="--x:385;--y:0;--h:1080"></i>
+        <i class="ln ln--v ln--soft" style="--x:379;--y:0;--h:1080"></i>
+        <i class="ln ln--v" style="--x:771;--y:506;--h:511"></i>
+        <i class="ln ln--v ln--soft" style="--x:765;--y:436;--h:532"></i>
+        <i class="ln ln--v" style="--x:1157;--y:390;--h:601"></i>
+        <i class="ln ln--v ln--soft" style="--x:1151;--y:442;--h:570"></i>
+        <i class="ln ln--v" style="--x:1543;--y:492;--h:491"></i>
+        <i class="ln ln--v ln--soft" style="--x:1537;--y:459;--h:608"></i>
+      </div>
 
-      <section class="files" data-section="files">
-        <div class="files__head">
-          <span>LATEST FILES</span>
-          <span class="muted">06 new this week</span>
+      <!-- news photos: stack while loading, row on the main screen -->
+      <div class="photos" data-photos></div>
+
+      <!-- wordmark: R and M live through the whole preloader -->
+      <h1 class="wordmark" aria-label="REQUIEM">
+        <svg viewBox="0 0 1860 352" fill="none" xmlns="http://www.w3.org/2000/svg" data-wordmark>
+          <g data-glyph="R"><path d="M142.187 154.352C162.325 154.352 178.22 150.311 189.871 142.229C201.666 134.147 207.563 119.57 207.563 98.4994C207.563 75.8409 199.364 60.3985 182.966 52.1722C174.192 47.8426 162.469 45.6777 147.797 45.6777H42.9367V154.352H142.187ZM0 8.65929H146.718C170.884 8.65929 190.806 12.1952 206.484 19.2669C236.26 32.8331 251.147 57.8729 251.147 94.3862C251.147 113.437 247.192 129.023 239.28 141.146C231.513 153.269 220.581 163.011 206.484 170.371C218.855 175.423 228.133 182.061 234.318 190.288C240.647 198.514 244.171 211.864 244.89 230.337L246.4 272.984C246.832 285.107 247.839 294.127 249.421 300.044C252.01 310.147 256.613 316.641 263.23 319.528V326.672H210.584C209.146 323.929 207.995 320.394 207.132 316.064C206.269 311.734 205.549 303.364 204.974 290.952L202.385 237.914C201.378 217.132 193.683 203.205 179.298 196.133C171.099 192.236 158.226 190.288 140.677 190.288H42.9367V326.672H0V8.65929Z" /></g>
+          <g data-glyph="mid">
+            <path d="M296.155 8.65929H527.237V47.6261H338.013V144.177H512.996V180.979H338.013V288.787H530.473V326.672H296.155V8.65929Z" />
+            <path d="M854.677 325.806L833.101 352L784.123 314.549C772.328 321.043 759.526 326.239 745.718 330.135C732.053 334.032 717.093 335.98 700.839 335.98C651.645 335.98 613.096 319.816 585.19 287.488C560.594 256.026 548.295 216.626 548.295 169.289C548.295 126.281 558.939 89.4793 580.228 58.8831C607.558 19.6277 647.977 0 701.486 0C757.441 0 798.867 18.0402 825.765 54.1205C846.766 82.2632 857.267 118.271 857.267 162.145C857.267 182.639 854.749 202.339 849.715 221.245C842.091 250.109 829.218 273.633 811.094 291.818L854.677 325.806ZM706.017 297.446C714.935 297.446 723.278 296.869 731.046 295.715C738.813 294.416 745.574 291.962 751.327 288.354L716.59 261.077L738.166 234.45L779.592 266.706C792.682 251.697 801.528 234.883 806.131 216.266C810.878 197.648 813.251 179.825 813.251 162.795C813.251 125.415 803.47 95.3243 783.907 72.5215C764.489 49.7187 737.878 38.3173 704.075 38.3173C669.841 38.3173 642.727 49.2858 622.733 71.2226C602.739 93.0152 592.742 126.642 592.742 172.103C592.742 210.348 602.308 240.8 621.438 263.459C640.713 286.117 668.906 297.446 706.017 297.446Z" />
+            <path d="M933.129 8.65929V205.225C933.129 228.317 937.444 247.511 946.074 262.809C958.876 285.901 980.452 297.446 1010.8 297.446C1047.19 297.446 1071.94 284.963 1085.03 259.995C1092.07 246.429 1095.6 228.172 1095.6 205.225V8.65929H1139.18V187.257C1139.18 226.368 1133.93 256.459 1123.43 277.53C1104.16 315.92 1067.76 335.114 1014.26 335.114C960.746 335.114 924.426 315.92 905.295 277.53C894.795 256.459 889.545 226.368 889.545 187.257V8.65929H933.129Z" />
+            <path d="M1183 8.65929H1226.37V326.672H1183V8.65929Z" />
+            <path d="M1288.75 8.65929H1519.83V47.6261H1330.61V144.177H1505.59V180.979H1330.61V288.787H1523.07V326.672H1288.75V8.65929Z" />
+          </g>
+          <g data-glyph="M"><path d="M1556.21 8.65929H1617.7L1708.75 277.53L1799.16 8.65929H1860V326.672H1819.22V138.982C1819.22 132.487 1819.36 121.735 1819.65 106.726C1819.94 91.7163 1820.08 75.6244 1820.08 58.4502L1729.68 326.672H1687.17L1596.12 58.4502V68.1919C1596.12 75.9852 1596.27 87.8918 1596.55 103.911C1596.99 119.787 1597.2 131.477 1597.2 138.982V326.672H1556.21V8.65929Z" /></g>
+        </svg>
+      </h1>
+
+      <!-- preloader UI -->
+      <div class="pre" data-pre aria-live="polite">
+        <p class="pre__label" data-pre-label><span data-flicker>Latest news</span> <span class="pre__idx" data-pre-idx>01 / 06</span></p>
+        <p class="pre__count" data-pre-count>00%</p>
+        <img class="pre__bar" data-pre-bar src="/assets/icons/line.svg" alt="" />
+      </div>
+
+      <!-- main screen UI -->
+      <div class="ui" data-ui>
+        <p class="ui__watch" style="--x:30;--y:405" data-flicker>Under Watch: 2026</p>
+        <nav class="ui__nav" style="--x:1213;--y:405">
+          <a href="#" data-flicker>Fashion</a>
+          <a href="#" data-flicker>Music</a>
+          <a href="#" data-flicker>Art &amp; Photography</a>
+          <a href="#" data-flicker>Film &amp; TV</a>
+          <a href="#" data-flicker>Culture</a>
+        </nav>
+        <a class="ui__lang" href="#" style="--x:1809;--y:402"><img src="/assets/icons/globe.svg" alt="" /><span data-flicker>EN - ES</span></a>
+        <div class="ui__pager" style="--x:485;--y:451">
+          <span data-flicker>Last news:</span>
+          <b class="is-active">1<img src="/assets/icons/circle-stroke.svg" alt="" /></b><i></i><b>2</b><i></i><b>3</b><i></i><b>4</b><i></i><b>5</b>
         </div>
-        <div class="files__track" data-anim="files"></div>
-      </section>
+        <p class="ui__cap" style="--x:485;--y:1037" data-flicker>Fashion feature</p>
+        <p class="ui__cap" style="--x:1213;--y:1037" data-flicker>Seven artists under 25 who refuse to be polished</p>
+        <label class="ui__search" style="--x:30;--y:1019">
+          <input type="search" placeholder="Search" />
+          <img src="/assets/icons/search.svg" alt="" />
+          <img class="ui__search-line" src="/assets/icons/line.svg" alt="" />
+        </label>
+      </div>
     </main>
-
-    <footer class="footer">
-      <span>©REQUIEM MAGAZINE 2026</span>
-      <a href="#">Terms</a>
-      <a href="#">Privacy Policy</a>
-      <a href="#">Cookie Policy</a>
-    </footer>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
