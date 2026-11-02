@@ -1,6 +1,7 @@
 import { gsap } from "gsap";
 import { BG_COLUMNS, NEWS_PHOTOS } from "../content";
 import { startFlicker } from "./flicker";
+import linesSvg from "../assets/lines.svg?raw";
 
 /* ---------- layout constants, in px of the 1920×1080 design frame ---------- */
 const STACK = [
@@ -50,6 +51,20 @@ function buildBackground() {
     host.appendChild(p);
   }
   return $$(".bg__col", host);
+}
+
+/** Mounts the designer's line vectors and sorts each piece into horizontal / vertical. */
+function buildLines() {
+  const host = $("[data-lines]");
+  host.innerHTML = linesSvg;
+  const pieces = [...host.querySelector("svg")!.children] as SVGGraphicsElement[];
+  const h: SVGGraphicsElement[] = [];
+  const v: SVGGraphicsElement[] = [];
+  for (const el of pieces) {
+    const b = el.getBBox();
+    (b.width >= b.height ? h : v).push(el);
+  }
+  return { h, v };
 }
 
 function buildPhotos() {
@@ -114,8 +129,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const R = glyph("R");
   const M = glyph("M");
   const mid = $$<SVGPathElement>('[data-glyph="mid"] path');
-  const hLines = $$(".ln--h");
-  const vLines = $$(".ln--v");
+  const { h: hLines, v: vLines } = buildLines();
   const pre = $("[data-pre]");
   const count = $("[data-pre-count]");
   const bar = $("[data-pre-bar]");
@@ -143,8 +157,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   gsap.set(tex, { opacity: 0 });
   gsap.set(cols, { opacity: 0 });
   gsap.set(mid, { opacity: 0 });
-  gsap.set(hLines, { scaleX: 0 });
-  gsap.set(vLines, { scaleY: 0 });
+  gsap.set(hLines, { scaleX: 0, transformOrigin: "0% 50%" });
+  gsap.set(vLines, { scaleY: 0, transformOrigin: "50% 0%" });
   gsap.set(ui, { opacity: 0 });
   gsap.set([count, label], { opacity: 0 });
   [R, M].forEach((g, i) => {
@@ -251,8 +265,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
         .to([count, label, bar], { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
         .to(R, { x: R.box.x, y: R.box.y, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
         .to(M, { x: M.box.x, y: M.box.y, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
-        .to(hLines, { scaleX: 1, duration: 0.7, stagger: 0.06, ease: "power3.inOut" }, 0.45)
-        .to(vLines, { scaleY: 1, duration: 0.7, stagger: 0.05, ease: "power3.inOut" }, 0.55)
+        .to(hLines, { scaleX: 1, duration: 0.75, stagger: 0.05, ease: "power3.inOut" }, 0.45)
+        .to(vLines, { scaleY: 1, duration: 0.75, stagger: { each: 0.03, from: "random" }, ease: "power3.inOut" }, 0.55)
         .to(mid, { keyframes: { opacity: [0, 1, 0.25, 1] }, duration: 0.35, stagger: { each: 0.06, from: "random" }, ease: "steps(3)" }, 0.95);
 
       cards.forEach((card, i) => {

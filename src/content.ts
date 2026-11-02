@@ -25,5 +25,4 @@ export const NEWS_PHOTOS = [
   "/assets/news/03.webp",
   "/assets/news/04.webp",
   "/assets/news/05.webp",
-  "/assets/news/06.webp",
 ];

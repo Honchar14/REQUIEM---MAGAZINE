@@ -69,33 +69,18 @@ p {
   word-break: break-word;
 }
 
-/* grid lines */
+/* grid lines: the designer's vector lines, 1920×1082 */
 .lines {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: calc(-1 * var(--u));
+  width: 100%;
   pointer-events: none;
 }
-.ln {
-  position: absolute;
+.lines svg {
   display: block;
-  background: var(--text);
-}
-.ln--h {
-  left: 0;
-  top: calc(var(--y) * var(--u));
   width: 100%;
-  height: max(1px, calc(2 * var(--u)));
-  transform-origin: left center;
-}
-.ln--v {
-  left: calc(var(--x) * var(--u));
-  top: calc(var(--y) * var(--u));
-  height: calc(var(--h) * var(--u));
-  width: max(1px, calc(2 * var(--u)));
-  transform-origin: center top;
-}
-.ln--soft {
-  opacity: 0.25;
+  height: auto;
 }
 
 /* photos */
@@ -166,11 +151,10 @@ p {
 }
 .pre__bar {
   position: absolute;
-  left: calc(270 * var(--u));
-  right: calc(30 * var(--u));
-  bottom: calc(30 * var(--u));
-  width: calc(100% - 300 * var(--u));
-  height: calc(8 * var(--u));
+  left: calc(260 * var(--u));
+  top: calc(1048 * var(--u));
+  width: calc(1630 * var(--u));
+  height: calc(4 * var(--u));
   clip-path: inset(0 100% 0 0);
 }
 
