@@ -23,7 +23,7 @@ function wrap(el: HTMLElement): Target {
 
 export function startFlicker(
   els: Iterable<HTMLElement>,
-  { rate = 0.012, interval = 90, hold = [90, 260] as [number, number] } = {},
+  { rate = 0.012, interval = 90, hold = [90, 260] as [number, number], chance = 1 } = {},
 ): () => void {
   const targets = [...els].map(wrap);
   const letters: [Target, number][] = [];
@@ -31,6 +31,7 @@ export function startFlicker(
   if (!letters.length) return () => {};
 
   const id = window.setInterval(() => {
+    if (Math.random() > chance) return;
     const n = Math.max(1, Math.round(letters.length * rate));
     for (let k = 0; k < n; k++) {
       const [t, i] = letters[(Math.random() * letters.length) | 0];

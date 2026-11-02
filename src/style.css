@@ -191,13 +191,6 @@ p {
 }
 
 /* preloader */
-.pre__label {
-  text-transform: uppercase;
-}
-.pre__idx {
-  opacity: 0.55;
-  margin-left: 0.4em;
-}
 .pre__count {
   position: absolute;
   left: calc(30 * var(--ux));

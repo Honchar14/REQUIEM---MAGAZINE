@@ -1,6 +1,7 @@
 import { gsap } from "gsap";
 import { BG_COLUMNS, NEWS_PHOTOS } from "../content";
 import { startFlicker } from "./flicker";
+import { prepareTypewriter } from "./typewriter";
 import linesSvg from "../assets/lines.svg?raw";
 import { ux, uy, uu, watchViewport } from "../viewport";
 
@@ -170,8 +171,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   const { h: hLines, v: vLines } = buildLines();
   const pre = $("[data-pre]");
   const count = $("[data-pre-count]");
-  const idx = $("[data-pre-idx]");
-  const label = $("[data-pre-label]");
   const ui = $$("[data-ui] > *");
   const blurs = $$<SVGFEGaussianBlurElement>(".sr-filters feGaussianBlur");
 
@@ -184,12 +183,17 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     relayout = () => (word.layout(), toHome());
     pre.remove();
     html.classList.remove("is-loading");
-    // main screen: the same typewriter flicker on the three captions, each with its own rhythm
-    for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.04, interval: 150, hold: [110, 280] });
+
+  };
+
+  const startCaptionFlicker = () => {
+    // the same typewriter flicker as the preloader columns, but rare: about one letter every 1.5–2 s per caption
+    for (const el of $$("[data-ui] [data-flicker]")) startFlicker([el], { rate: 0.01, interval: 450, chance: 0.25, hold: [120, 260] });
   };
 
   if (reduceMotion) {
     finish();
+    startCaptionFlicker();
     return Promise.resolve();
   }
 
@@ -202,7 +206,13 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
   gsap.set(hLines, { scaleX: 0, transformOrigin: "0% 50%" });
   gsap.set(vLines, { scaleY: 0, transformOrigin: "50% 0%" });
   gsap.set(ui, { opacity: 0 });
-  gsap.set([count, label], { opacity: 0 });
+  const typeTargets = [
+    ...$$("[data-ui] .t"),
+    ...$$("[data-ui] .gt"),
+  ] as (HTMLElement | HTMLInputElement)[];
+  const icons = $$("[data-ui] .ico");
+  const typeIn = prepareTypewriter(typeTargets, { stagger: 90, min: 26, max: 62 });
+  gsap.set(count, { opacity: 0 });
   toHome(); // middle letters sit at their final spots, hidden
   [R, M].forEach((g, i) => {
     g.s = PRE_H / g.h;
@@ -233,7 +243,6 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
     photoIdx = (photoIdx + 1) % NEWS_PHOTOS.length;
     showPhoto(card, photoIdx);
     card.style.zIndex = String(++z);
-    idx.textContent = `${pad(photoIdx + 1)} / ${pad(NEWS_PHOTOS.length)}`;
     const dir = Math.random() < 0.5 ? -1 : 1;
     const blur = { v: 38 };
     gsap.fromTo(
@@ -266,8 +275,8 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
       .to([R.el, M.el], { keyframes: { opacity: [0, 1, 0.2, 1] }, duration: 0.4, stagger: 0.08, ease: "steps(3)" }, 0.75)
       .from([R.el, M.el], { yPercent: 6, duration: 0.6, ease: "expo.out", stagger: 0.08 }, 0.75)
 
-      /* 3 — counter + label, letters move apart, photo stack arrives */
-      .to([count, label], { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.35, ease: "steps(3)" }, 1.35)
+      /* 3 — counter appears, letters move apart, photo stack arrives */
+      .to(count, { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.35, ease: "steps(3)" }, 1.35)
       .to(R, { x: fx(SPLIT_X.R), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 1.45)
       .to(M, { x: fx(SPLIT_X.M), duration: 0.85, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 1.45)
       .to(cards, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.05, ease: "expo.out" }, 1.75)
@@ -302,7 +311,7 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
         },
       });
       out
-        .to([count, label], { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
+        .to(count, { keyframes: { opacity: [1, 0.2, 0.8, 0] }, duration: 0.3, ease: "steps(3)" })
         .to(R, { x: R.home, y: R.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(R) }, 0.1)
         .to(M, { x: M.home, y: M.y0, s: 1, duration: 1.05, ease: "power4.inOut", onUpdate: () => applyGlyph(M) }, 0.1)
         .to(hLines, { scaleX: 1, duration: 0.75, stagger: 0.05, ease: "power3.inOut" }, 0.45)
@@ -321,7 +330,14 @@ export function runPreloader({ reduceMotion = false } = {}): Promise<void> {
           }, 0.55 + i * 0.06);
       });
 
-      out.to(ui, { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.4, stagger: 0.04, ease: "steps(3)" }, 1.25);
+      // small type is struck in like a typewriter; icons and the pager ring flick on
+      out
+        .set(ui, { opacity: 1 }, 1.2)
+        .set(icons, { opacity: 0 }, 1.2)
+        .add(() => {
+          typeIn().then(startCaptionFlicker);
+        }, 1.2)
+        .to(icons, { keyframes: { opacity: [0, 1, 0.3, 1] }, duration: 0.35, stagger: 0.12, ease: "steps(3)" }, 1.45);
     };
   });
 }
