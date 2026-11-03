@@ -594,3 +594,22 @@ p {
 .ui__lang .ico {
   cursor: pointer;
 }
+
+/* ---------- fingerprints along the cursor's path (prints.ts) ---------- */
+.prints {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* white ridges light the dark surface rather than cover it */
+  mix-blend-mode: screen;
+}
+.prints img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+  user-select: none;
+}
