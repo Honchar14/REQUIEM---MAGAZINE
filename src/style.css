@@ -596,13 +596,16 @@ p {
 }
 
 /* ---------- fingerprints along the cursor's path (prints.ts) ---------- */
+/* over the whole page, as in the reference: "difference" keeps them readable on
+   everything, white ridges on the dark ground, dark ridges on the white wordmark
+   and inverted ridges on the photos */
 .prints {
   position: absolute;
   inset: 0;
+  z-index: 50;
   overflow: hidden;
   pointer-events: none;
-  /* white ridges light the dark surface rather than cover it */
-  mix-blend-mode: screen;
+  mix-blend-mode: difference;
 }
 .prints img {
   position: absolute;
