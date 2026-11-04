@@ -2,7 +2,7 @@ import { gsap } from "gsap";
 import type { Story } from "./content";
 import { setFlickerText } from "./animations/flicker";
 import { prepareTypewriter } from "./animations/typewriter";
-import { uu } from "./viewport";
+import { isCompact, onViewport, uu, ux } from "./viewport";
 
 /**
  * EN / ES. Every visible string on the page switches: the labels, the menu,
@@ -122,19 +122,28 @@ export function localized(story: Story, page: number, slot: number): Story {
 const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
 const $$ = <T extends Element = HTMLElement>(s: string) => [...document.querySelectorAll<T>(s)];
 
-/** the layout's menu positions (English); other languages are laid out from the word widths, 20px apart */
-const NAV_X = [1213, 1301, 1371, 1544, 1645];
+/**
+ * The menu starts where the layout puts "Fashion" (x 1213) and every next word
+ * follows the one before it, 20px apart, as in the layout. The words are sized
+ * in --u and placed in --ux, so the gaps are measured in screen px: they stay
+ * even on every screen shape and in every language.
+ * (Compact layout: the menu is in flow, CSS lays it out.)
+ */
+const NAV_X = [1213, 1301, 1371, 1544, 1645]; // the layout's English menu
+const NAV_GAP = 20;
 function layoutNav() {
+  if (isCompact()) return;
   const links = $$("[data-ui] .ui__nav a");
-  if (lang === "en") {
-    links.forEach((a, k) => a.style.setProperty("--x", String(NAV_X[k])));
-    return;
-  }
+  const kx = ux();
+  const k = uu() / kx; // a design px of type, in --x units
   let x = NAV_X[0];
-  for (const a of links) {
-    a.style.setProperty("--x", x.toFixed(1));
-    x += a.getBoundingClientRect().width / uu() + 20;
-  }
+  links.forEach((a, i) => {
+    // English: the layout's own offsets from "Fashion", scaled with the type
+    if (lang === "en") x = NAV_X[0] + (NAV_X[i] - NAV_X[0]) * k;
+    a.style.setProperty("--x", x.toFixed(2));
+    // offsetWidth: the laid-out width, unaffected by the hover push (a transform)
+    x += a.offsetWidth / kx + NAV_GAP * k;
+  });
 }
 
 /** writes the strings of the current language; with animate, the labels are retyped */
@@ -150,7 +159,8 @@ function applyUI(animate: boolean) {
     [$("[data-i18n=tagline]"), d.tagline],
     ...$$("[data-ui] .ui__nav a").map((a, k) => [a, d.nav[k]] as [HTMLElement, string]),
   ];
-  for (const [el, s] of texts) if (el) el.textContent = s;
+  // a flickering label takes its new letters by itself (flicker.ts)
+  for (const [el, s] of texts) if (el) setFlickerText(el, s);
   $("[data-ui] .ui__nav")?.setAttribute("aria-label", d.sections);
   $$<HTMLButtonElement>("[data-page]").forEach((b, k) => b.setAttribute("aria-label", d.page(k + 1)));
   $(".ui__lang")?.setAttribute("aria-label", d.language);
@@ -164,22 +174,18 @@ function applyUI(animate: boolean) {
   }
   layoutNav();
 
-  const flickers = texts.filter(([el]) => el?.hasAttribute("data-flicker")) as [HTMLElement, string][];
-  const rewrap = () => flickers.forEach(([el, s]) => setFlickerText(el, s));
-  if (!animate) return rewrap();
-  const targets = [...texts.map(([el]) => el).filter(Boolean), input].filter(Boolean) as (HTMLElement | HTMLInputElement)[];
-  prepareTypewriter(targets, { stagger: 32, min: 14, max: 30 })().then(rewrap);
+  if (!animate) return;
+  // retyping claims every label: a run still going on any of them (the intro,
+  // or the previous switch) is cancelled and never writes its old text back
+  const targets = [...texts.map(([el]) => el), input].filter(Boolean) as (HTMLElement | HTMLInputElement)[];
+  prepareTypewriter(targets, { stagger: 32, min: 14, max: 30 })();
 }
 
 /** Puts the current language in place before the preloader types the labels. */
 export function bootLang() {
   applyUI(false);
-  document.fonts?.ready.then(layoutNav);
-  let raf = 0;
-  window.addEventListener("resize", () => {
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(layoutNav);
-  });
+  // after the units are updated (viewport.ts), never before: the widths depend on them
+  onViewport(layoutNav);
 }
 
 export function setLang(next: Lang, { animate = true } = {}) {
@@ -203,9 +209,14 @@ export function initLangSwitch() {
   // the menu hover pushes the items after the hovered word by 0.05em per letter of it
   const nav = $(".ui__nav");
   nav?.querySelectorAll<HTMLElement>("a").forEach((a) => {
-    const push = () => nav.style.setProperty("--push", String(a.textContent?.length ?? 0));
+    const push = () => nav.style.setProperty("--push", String((a.textContent ?? "").length));
     a.addEventListener("pointerenter", push);
     a.addEventListener("focus", push);
+  });
+  // the sections are not built yet: their "#" links must not jump or touch the address bar
+  document.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest?.<HTMLAnchorElement>('a[href="#"]');
+    if (a) e.preventDefault();
   });
   const sw = $(".ui__lang");
   if (!sw) return;

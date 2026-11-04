@@ -1,6 +1,6 @@
 import { gsap } from "gsap";
-import { SLIDES, type Story } from "../content";
-import { uu, ux, uy } from "../viewport";
+import { SLIDES, SLOT_OF_CARD, type Story } from "../content";
+import { uu } from "../viewport";
 import { localized, t } from "../i18n";
 
 /**
@@ -16,14 +16,12 @@ import { localized, t } from "../i18n";
  * - Hover (or keyboard focus) on a story: the photo drops to black and white and
  *   the glass card rises from the bottom; the title flickers in letter by
  *   letter, the rest is struck in like the typewriter labels and the underline draws.
- *   The autoplay waits while a card is open.
+ *   On touch screens a tap opens the card and a second tap (or a tap anywhere
+ *   else) closes it. The autoplay waits while a card is open.
  */
 
-/** card i (in the order the preloader deals them) → its slot on screen, left to right */
-const SLOT_OF_CARD = [1, 0, 2, 3, 4];
 /** ring position in the pager for each page (layout x − 485) */
 const RING_X = [98, 163, 225, 288, 351];
-const SLOT_X = [-2, 384, 770, 1156, 1542]; // layout x of each slot
 const params = new URLSearchParams(location.search);
 // ?slidedemo: short pages, for previews
 const PAGE_TIME = params.has("slidedemo") ? 2.4 : 7; // seconds a page plays before the next one
@@ -198,10 +196,39 @@ export function initSlider({ reduceMotion = false } = {}) {
     syncPause();
   };
   for (const c of state) {
-    c.card.addEventListener("pointerenter", () => (openCard(c), syncPause()));
-    c.card.addEventListener("pointerleave", () => closeCard(c));
+    // mouse: hover. Touch and pen: pointerenter/leave fire around every tap, so they are left to the tap below
+    c.card.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && !c.open && (openCard(c), syncPause()));
+    c.card.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && c.open && closeCard(c));
     c.card.addEventListener("focusin", () => !c.open && (openCard(c), syncPause()));
-    c.card.addEventListener("focusout", (e) => !c.card.contains(e.relatedTarget as Node) && closeCard(c));
+    c.card.addEventListener("focusout", (e) => c.open && !c.card.contains(e.relatedTarget as Node) && closeCard(c));
+  }
+  // touch: a tap on a photo opens its card, a tap on the open card (not on its link) closes it;
+  // pointerdown keeps the decision before focus moves
+  let tapOpen: Card | null = null;
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.pointerType === "mouse") return;
+      const c = state.find((c) => c.card.contains(e.target as Node));
+      tapOpen = c ?? null;
+      // a tap anywhere else closes what is open
+      for (const o of state) if (o.open && o !== c) closeCard(o);
+    },
+    { passive: true },
+  );
+  for (const c of state) {
+    c.card.addEventListener("click", (e) => {
+      if (tapOpen !== c) return; // mouse and keyboard clicks are not taps
+      tapOpen = null;
+      if ((e.target as HTMLElement).closest(".pi__more")) return; // the link does its job
+      if (c.open) {
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        closeCard(c);
+      } else {
+        openCard(c);
+        syncPause();
+      }
+    });
   }
 
   /* ---------- pager ring ---------- */
@@ -237,21 +264,33 @@ export function initSlider({ reduceMotion = false } = {}) {
   const mount = (w: Swap, vars: gsap.TweenVars = {}) => {
     w.next.hidden = false;
     w.c.card.insertBefore(w.next, w.c.info.el);
+    // the photos ease their hover filter in CSS; during the swap the flashes are driven
+    // frame by frame here, and a CSS transition would smear them
+    w.next.style.transition = "none";
     gsap.set(w.next, { zIndex: 2, ...vars });
     gsap.set(w.prev, { zIndex: 1 });
   };
   /** the next photo is now the card's photo, with its story */
   const commit = (w: Swap) => {
     w.c.img = w.next;
-    writeInfo(w.c, w.story);
+    // taken now, not when the swap was planned: the language may have changed in between
+    writeInfo(w.c, localized(SLIDES[page][w.c.slot], page, w.c.slot));
     if (w.c.open) openCard(w.c);
   };
   const cleanup = (w: Swap) => {
     w.prev.remove();
-    gsap.set(w.next, { clearProps: "transform,opacity,filter,zIndex,clipPath" });
-    w.c.card.style.filter = "none";
+    gsap.set(w.next, { clearProps: "transform,opacity,filter,zIndex,clipPath,transition" });
+    w.c.card.style.filter = "";
   };
-  const blurOf = (c: Card) => (v: number) => c.blur?.setAttribute("stdDeviation", `${v.toFixed(1)} 0`);
+  /** horizontal motion blur on the whole card; the SVG filter is attached only while it blurs */
+  const blurOf = (c: Card) => {
+    const k = c.card.offsetWidth / 380 || 1; // the blur is designed on a 380px card
+    return (v: number) => {
+      const on = v > 0.3;
+      c.card.style.filter = on ? `url(#mblur-${c.i})` : "";
+      if (on) c.blur?.setAttribute("stdDeviation", `${(v * k).toFixed(1)} 0`);
+    };
+  };
   /** position in the direction of travel: 0 for the first card to change */
   const orderOf = (c: Card, dir: number) => (dir > 0 ? c.slot : 4 - c.slot);
   const overlay = (c: Card, cls: string, html = "") => {
@@ -272,10 +311,7 @@ export function initSlider({ reduceMotion = false } = {}) {
         const blur = blurOf(w.c);
         const sub = gsap
           .timeline({
-            onStart: () => {
-              w.c.card.style.filter = `url(#mblur-${w.c.i})`;
-              mount(w, { xPercent: dir * 22, opacity: 0 });
-            },
+            onStart: () => mount(w, { xPercent: dir * 22, opacity: 0 }),
             onComplete: () => cleanup(w),
           })
           .to(w.prev, { xPercent: -dir * 16, duration: 0.2, ease: "power2.in" }, 0)
@@ -353,21 +389,22 @@ export function initSlider({ reduceMotion = false } = {}) {
     },
 
     deal(tl, swaps, dir) {
-      const mid = SLOT_X[2];
+      // distances are measured on the page, so the pile works on every layout
+      const k0 = swaps[0].c.card.offsetWidth / 380 || 1;
+      const centre = (c: Card) => c.card.offsetLeft + c.card.offsetWidth / 2;
+      const midCard = swaps.find((w) => w.c.slot === 2)!.c;
+      const mid = centre(midCard);
       const z = swaps.map((w) => w.c.card.style.zIndex);
       // the outer cards travel furthest: pile them in from the outside in
-      const pileOrder = [...swaps].sort((a, b) => Math.abs(SLOT_X[b.c.slot] - mid) - Math.abs(SLOT_X[a.c.slot] - mid));
+      const pileOrder = [...swaps].sort((a, b) => Math.abs(centre(b.c) - mid) - Math.abs(centre(a.c) - mid));
       const g = 0.05;
       pileOrder.forEach((w, k) => {
         const b = { v: 0 };
         const blur = blurOf(w.c);
-        const dx = (mid - SLOT_X[w.c.slot]) * ux();
-        tl.add(() => {
-          w.c.card.style.zIndex = String(40 + k);
-          w.c.card.style.filter = `url(#mblur-${w.c.i})`;
-        }, g + k * 0.04)
-          .to(w.c.card, { x: dx + (Math.random() * 30 - 15) * ux(), y: (Math.random() * 24 - 12) * uy(), rotation: Math.random() * 8 - 4, duration: 0.42, ease: "power3.in" }, g + k * 0.04)
-          .to(b, { keyframes: { v: [0, 28, 6] }, duration: 0.42, ease: "none", easeEach: "power2.inOut", onUpdate: () => blur(b.v) }, g + k * 0.04);
+        const dx = mid - centre(w.c);
+        tl.add(() => (w.c.card.style.zIndex = String(40 + k)), g + k * 0.04)
+          .to(w.c.card, { x: dx + (Math.random() * 30 - 15) * k0, y: (Math.random() * 24 - 12) * k0, rotation: Math.random() * 8 - 4, duration: 0.42, ease: "power3.in" }, g + k * 0.04)
+          .to(b, { keyframes: { v: [0, 28, 6], easeEach: "power2.inOut" }, duration: 0.42, ease: "none", onUpdate: () => blur(b.v) }, g + k * 0.04);
       });
       // in the pile: every card takes its new photo, and the top few are shuffled with a flick
       const inPile = g + 0.42 + 0.04 * 4;
@@ -376,8 +413,9 @@ export function initSlider({ reduceMotion = false } = {}) {
         const b = { v: 30 };
         const blur = blurOf(w.c);
         const t = inPile + 0.05 + k * 0.11;
+        const flick = (k % 2 ? -1 : 1) * 60 * k0;
         tl.add(() => (w.c.card.style.zIndex = String(60 + k)), t)
-          .fromTo(w.c.card, { x: `+=${(k % 2 ? -1 : 1) * 60 * ux()}` }, { x: `-=${(k % 2 ? -1 : 1) * 60 * ux()}`, duration: 0.2, ease: "expo.out" }, t)
+          .fromTo(w.c.card, { x: `+=${flick}` }, { x: `-=${flick}`, duration: 0.2, ease: "expo.out" }, t)
           .fromTo(b, { v: 30 }, { v: 4, duration: 0.2, ease: "power2.out", onUpdate: () => blur(b.v) }, t);
       });
       // dealt back out in the direction of travel
@@ -387,7 +425,7 @@ export function initSlider({ reduceMotion = false } = {}) {
         const blur = blurOf(w.c);
         const t = dealAt + orderOf(w.c, dir) * 0.07;
         tl.to(w.c.card, { x: 0, y: 0, rotation: 0, duration: 0.55, ease: "power3.out" }, t)
-          .to(b, { keyframes: { v: [6, 30, 0] }, duration: 0.55, ease: "none", easeEach: "power2.inOut", onUpdate: () => blur(b.v) }, t)
+          .to(b, { keyframes: { v: [6, 30, 0], easeEach: "power2.inOut" }, duration: 0.55, ease: "none", onUpdate: () => blur(b.v) }, t)
           .fromTo(w.next, { filter: "brightness(1.5)" }, { filter: "brightness(1)", duration: 0.5, ease: "expo.out" }, t + 0.25)
           .add(() => {
             gsap.set(w.c.card, { clearProps: "transform" });
@@ -399,8 +437,24 @@ export function initSlider({ reduceMotion = false } = {}) {
   };
   const transition = pickTransition();
 
+  /** a page asked for while another is coming in: played right after it (the latest ask wins) */
+  let queued: [number, number] | null = null;
+  const settle = () => {
+    busy = false;
+    if (queued) {
+      const [target, dir] = queued;
+      queued = null;
+      if (target !== page) return void go(target, dir);
+    }
+    startProgress();
+  };
+
   async function go(target: number, dir: number) {
-    if (busy || target === page) return;
+    if (busy) {
+      queued = [target, dir];
+      return;
+    }
+    if (target === page) return;
     busy = true;
     progress?.kill();
     progress = undefined;
@@ -418,8 +472,7 @@ export function initSlider({ reduceMotion = false } = {}) {
       });
       ringState.x = RING_X[target];
       drawRing();
-      busy = false;
-      startProgress();
+      settle();
       return;
     }
 
@@ -430,14 +483,13 @@ export function initSlider({ reduceMotion = false } = {}) {
     const tl = gsap.timeline({
       onComplete: () => {
         ring!.style.filter = "";
-        busy = false;
-        startProgress();
+        settle();
       },
     });
     // the ring drains, then hops to the new number with a motion blur
     tl.to(ringState, { p: 0, duration: 0.22, ease: "power2.in", onUpdate: drawRing }, 0)
       .to(ringState, { x: RING_X[target], duration: 0.5, ease: "expo.inOut", onUpdate: drawRing }, 0.05)
-      .to(ringState, { keyframes: { blur: [0, 7, 0] }, duration: 0.5, ease: "none", easeEach: "power2.inOut", onUpdate: drawRing }, 0.05);
+      .to(ringState, { keyframes: { blur: [0, 7, 0], easeEach: "power2.inOut" }, duration: 0.5, ease: "none", onUpdate: drawRing }, 0.05);
     // the strip changes, in the chosen style
     const swaps: Swap[] = state.map((c, k) => ({ c, story: stories[k], next: imgFor(stories[k].photo), prev: c.img }));
     if (transition === "deal") state.filter((c) => c.open).forEach(closeCard);

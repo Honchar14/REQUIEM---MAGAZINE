@@ -1,3 +1,15 @@
+@font-face {
+  font-family: "Special Elite";
+  font-style: normal;
+  font-weight: 400;
+  /* block: the typewriter labels are hidden until they are typed anyway, and the
+     faint columns must not flash in a fallback face */
+  font-display: block;
+  src: url("/fonts/special-elite-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bg: #0b0b0a;
   --text: #ffffff;
@@ -48,6 +60,24 @@ p {
   pointer-events: none;
 }
 
+/* before the preloader has set its first frame (the script is still on its way),
+   only the empty ground shows: the finished page must not flash up first */
+.is-booting .bg__tex,
+.is-booting .bg__cols,
+.is-booting .photos,
+.is-booting .lines,
+.is-booting .wordmark,
+.is-booting [data-ui] {
+  visibility: hidden;
+}
+/* while loading, the invisible UI must not catch clicks, taps or focus */
+.is-loading [data-ui] {
+  pointer-events: none;
+}
+.is-loading .photo {
+  will-change: transform;
+}
+
 /* ---------- stage: everything is laid out in design px ---------- */
 .stage {
   position: fixed;
@@ -74,6 +104,8 @@ p {
   line-height: 1;
   letter-spacing: -0.05em;
   opacity: 0.1;
+  /* the flicker changes letters many times a second: keep that work inside the column */
+  contain: layout paint style;
 }
 
 /* grid lines: the designer's vector lines, 1920×1082 */
@@ -96,15 +128,17 @@ p {
   position: absolute;
   inset: 0;
 }
+/* every card sits in its slot of the strip from the start (--rx/--ry, design px);
+   the preloader only moves it there with transforms */
 .photo {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: calc(var(--rx, 0) * var(--ux));
+  top: calc(var(--ry, 0) * var(--uy));
   width: calc(380 * var(--ux));
   height: calc(390 * var(--uy));
+  margin: 0;
   overflow: hidden;
   background: #151513;
-  will-change: transform;
 }
 .photo > img {
   position: absolute;
@@ -615,4 +649,295 @@ p {
   opacity: 0;
   will-change: transform, opacity;
   user-select: none;
+}
+
+/* ---------- touch screens: no sticky hover effects after a tap ---------- */
+@media (hover: none) {
+  .ui__nav a:hover {
+    letter-spacing: -0.05em;
+  }
+  .ui__nav a:hover::before,
+  .ui__nav a:hover::after {
+    opacity: 0;
+    transform: scale(0);
+    animation: none;
+  }
+  .ui__nav a:hover::after {
+    transform: scaleX(0);
+  }
+  .ui__nav > a:hover ~ a {
+    transform: none;
+  }
+  .ui__search:hover:not(:focus-within) .rec {
+    opacity: 0;
+    transform: scale(0);
+    animation: none;
+  }
+  .ui__search:hover:not(:focus-within) input {
+    transform: none;
+  }
+}
+
+/* =====================================================================
+   compact layout: phones, portrait tablets, very short windows
+   (keep the query in sync with COMPACT_QUERY in viewport.ts)
+
+   The 1920×1080 frame cannot be scaled down to a phone: type would be 4px
+   and the photos thin slivers. Here the page is laid out in flow instead,
+   top to bottom: wordmark, labels, menu, pager, the photo strip (swipe it
+   sideways; it takes all the height that is left), feature line, search.
+   Type is set in --u (viewport.ts: about 14–17px for 18 design px).
+   ===================================================================== */
+@media (orientation: portrait), (max-width: 767px), (max-height: 500px) {
+  .stage {
+    --pad: max(16px, 4.6vw);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto minmax(var(--strip-min), 1fr) auto auto auto;
+    grid-template-areas:
+      "word word"
+      "watch lang"
+      "nav nav"
+      "pager pager"
+      "strip strip"
+      "feature feature"
+      "tagline tagline"
+      "search search";
+    --strip-min: 260px;
+    align-content: start;
+    min-height: 100%;
+    padding: max(var(--pad), env(safe-area-inset-top)) max(var(--pad), env(safe-area-inset-right))
+      max(var(--pad), env(safe-area-inset-bottom)) max(var(--pad), env(safe-area-inset-left));
+    /* a phone that is too short (landscape) scrolls the page; the bars stay hidden */
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .stage::-webkit-scrollbar {
+    display: none;
+  }
+  .is-loading .stage {
+    overflow: hidden;
+  }
+  .ui {
+    display: contents;
+  }
+
+  /* the ground stays put behind everything */
+  .bg {
+    position: fixed;
+  }
+  /* the faint columns sit mostly behind the strip, out of the way of the labels;
+     they show in the preloader and between the cards */
+  .bg__col {
+    left: auto;
+    top: auto;
+    width: 36vw;
+    font-size: max(9px, calc(11 * var(--u)));
+    /* lighter than on the wide screen: here the labels sit closer to them */
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .bg__col:nth-child(1) { left: 6vw; top: 30%; }
+  .bg__col:nth-child(2) { left: 56vw; top: 58%; }
+  .bg__col:nth-child(3) { left: 57vw; top: 27%; }
+  .bg__col:nth-child(4) { left: 7vw; top: 64%; }
+
+  /* wordmark: full width, its own proportions (never taller than a quarter of a short screen) */
+  .wordmark {
+    grid-area: word;
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 100%; /* browsers without dvh */
+    width: min(100%, calc(20dvh * 1860 / 352));
+    height: auto;
+    aspect-ratio: 1860 / 352;
+    margin: 0 0 calc(16 * var(--u));
+  }
+
+  /* labels: in flow, no baseline placement */
+  .t,
+  .t[style*="--r"] {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+  }
+  .grp,
+  .grp[style*="--r"] {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+  }
+  [data-i18n="underWatch"] {
+    grid-area: watch;
+    align-self: center;
+  }
+  .ui__lang {
+    grid-area: lang;
+    align-self: center;
+  }
+  /* EN / ES are small: a finger-sized hit area around each */
+  .ui__lang button {
+    position: relative;
+  }
+  .ui__lang button::before {
+    content: "";
+    position: absolute;
+    inset: -12px -8px;
+  }
+  .ui__nav {
+    grid-area: nav;
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(8 * var(--u)) calc(18 * var(--u));
+    margin-top: calc(14 * var(--u));
+  }
+  .ui__nav a.t {
+    padding: 2px 0;
+  }
+  .ui__pager {
+    grid-area: pager;
+    margin: calc(24 * var(--u)) 0 calc(18 * var(--u));
+  }
+  .ui__pager button::before {
+    inset: -12px -10px;
+  }
+  [data-i18n="feature"] {
+    grid-area: feature;
+    margin-top: calc(22 * var(--u));
+  }
+  [data-i18n="tagline"] {
+    grid-area: tagline;
+    margin-top: calc(6 * var(--u));
+    white-space: normal;
+    line-height: 1.15;
+  }
+  .ui__search {
+    grid-area: search;
+    margin-top: calc(22 * var(--u));
+  }
+  /* iOS zooms into any field set under 16px */
+  .ui__search input {
+    font-size: max(16px, calc(18 * var(--u)));
+  }
+
+  /* the photo strip: cards side by side, swiped sideways, snapping to a card */
+  .photos {
+    grid-area: strip;
+    position: relative;
+    inset: auto;
+    display: flex;
+    gap: calc(10 * var(--u));
+    margin: 0 calc(-1 * max(var(--pad), env(safe-area-inset-right))) 0 calc(-1 * max(var(--pad), env(safe-area-inset-left)));
+    padding: 0 max(var(--pad), env(safe-area-inset-right)) 0 max(var(--pad), env(safe-area-inset-left));
+    scroll-padding-inline: max(var(--pad), env(safe-area-inset-left));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
+  .photos::-webkit-scrollbar {
+    display: none;
+  }
+  /* while the preloader deals the cards they fly over the whole screen */
+  .is-loading .photos {
+    overflow: visible;
+  }
+  .photo {
+    position: relative;
+    left: auto;
+    top: auto;
+    flex: 0 0 auto;
+    order: var(--slot, 0);
+    height: 100%;
+    width: auto;
+    aspect-ratio: 4 / 5;
+    max-width: 80vw;
+    scroll-snap-align: start;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* the strip's two rules follow the strip (preloader.ts: --strip-top / --strip-h);
+     the frame's vertical rules belong to the desktop grid */
+  /* the layer is cut to the strip and its rules (frame y 524–938), so the rest of
+     the stretched drawing never makes the page scrollable */
+  .lines {
+    top: calc(var(--strip-top, 0px) - var(--strip-h, 390px) * 12 / 390);
+    height: calc(var(--strip-h, 390px) * 414 / 390);
+    overflow: hidden;
+  }
+  .lines svg {
+    position: absolute;
+    left: 0;
+    top: calc(var(--strip-h, 390px) * -524 / 390);
+    height: calc(var(--strip-h, 390px) * 1082 / 390);
+  }
+  .lines .line-v {
+    display: none;
+  }
+
+  /* the story card: laid out in flow inside the photo, bottom-up */
+  .photo__info {
+    top: auto;
+    bottom: 0;
+    height: auto;
+    min-height: 52%;
+    display: flex;
+    flex-direction: column;
+    padding: calc(20 * var(--u)) calc(18 * var(--u)) calc(18 * var(--u));
+  }
+  .photo__info > * {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: auto;
+  }
+  .pi__title {
+    --s: 34;
+    width: auto;
+    white-space: normal;
+    line-height: 0.95;
+    overflow-wrap: anywhere;
+  }
+  .pi__sub {
+    --s: 15;
+    margin-top: calc(8 * var(--u));
+    width: auto;
+    white-space: normal;
+    line-height: 1.1;
+  }
+  .pi__body {
+    --s: 17;
+    margin-top: calc(16 * var(--u));
+    width: auto;
+  }
+  .pi__more {
+    position: relative;
+    margin-top: auto;
+    padding-top: calc(16 * var(--u));
+    box-sizing: content-box;
+  }
+  .pi__arrow,
+  .pi__line {
+    margin-top: calc(16 * var(--u));
+  }
+  /* on the Read more line: the link box is its text plus 10 units for the underline */
+  .pi__date {
+    position: absolute;
+    right: calc(18 * var(--u));
+    bottom: calc(28 * var(--u));
+  }
+
+  /* fingerprints (mouse only) follow the window, not the scrolled page */
+  .prints {
+    position: fixed;
+  }
 }

@@ -1,5 +1,4 @@
 import "./style.css";
-import { initSmoothScroll } from "./animations/scroll";
 import { runPreloader } from "./animations/preloader";
 import { initSearchHover } from "./animations/searchHover";
 import { initSlider } from "./animations/slider";
@@ -12,11 +11,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 // EN / ES: the saved language is in place before anything is typed
 bootLang();
 
-const lenis = initSmoothScroll(reduceMotion);
-lenis?.stop();
-
 runPreloader({ reduceMotion }).then(() => {
-  lenis?.start();
   // Search hover: the placeholder is retyped on a loop behind a blinking caret
   if (!reduceMotion) initSearchHover();
   // REQUIEM: now and then a letter flickers

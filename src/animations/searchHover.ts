@@ -5,6 +5,8 @@
  * Stops (and puts "Search" back) when the pointer leaves, and stays off
  * while the field is focused or has text, so it never fights the real caret.
  */
+import { isTyping } from "./typewriter";
+
 const CARET = "|";
 const BLINK = 530; // ms per caret phase while waiting
 const ERASE = [70, 110]; // ms per letter
@@ -57,8 +59,10 @@ export function initSearchHover() {
     timer = window.setTimeout(() => type(n + 1), rand(TYPE));
   };
 
-  const start = () => {
-    if (running || document.activeElement === input || input.value) return;
+  const start = (e?: PointerEvent) => {
+    // mouse only (a tap goes straight to the field), and never over a label still being typed in
+    if (e ? e.pointerType !== "mouse" : !matchMedia("(hover: hover)").matches) return;
+    if (running || document.activeElement === input || input.value || isTyping(input)) return;
     word = input.dataset.word || word;
     short = word.slice(0, 3);
     running = true;
@@ -66,9 +70,10 @@ export function initSearchHover() {
   };
 
   const stop = () => {
+    if (!running) return;
     running = false;
     clearTimeout(timer);
-    input.placeholder = word;
+    input.placeholder = input.dataset.word || word;
   };
 
   label.addEventListener("pointerenter", start);
@@ -76,4 +81,6 @@ export function initSearchHover() {
   input.addEventListener("focus", stop);
   input.addEventListener("input", stop);
   input.addEventListener("blur", () => label.matches(":hover") && start());
+  // the language switch retypes the placeholder: the loop gives way to it
+  document.addEventListener("requiem:lang", stop);
 }

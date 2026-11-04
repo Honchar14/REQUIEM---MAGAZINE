@@ -27,6 +27,14 @@ export function startPrints() {
   layer.className = "prints";
   layer.setAttribute("aria-hidden", "true");
   stage.appendChild(layer);
+  // a full-screen "difference" layer is blended over the page on every frame:
+  // it is only shown while a print is on it
+  let live = 0;
+  const shown = (d: number) => {
+    live += d;
+    layer.style.visibility = live > 0 ? "" : "hidden";
+  };
+  shown(0);
 
   // a pool of images, reused in turn; the oldest print gives way to the newest
   const pool = Array.from({ length: MAX }, () => {
@@ -35,7 +43,7 @@ export function startPrints() {
     im.decoding = "async";
     im.draggable = false;
     layer.appendChild(im);
-    return { im, tl: null as gsap.core.Timeline | null };
+    return { im, tl: null as gsap.core.Timeline | null, on: false };
   });
   // warm the cache so the first prints are not blank
   SRC.forEach((s) => (new Image().src = s));
@@ -50,6 +58,10 @@ export function startPrints() {
     const slot = pool[next];
     next = (next + 1) % MAX;
     slot.tl?.kill();
+    if (!slot.on) {
+      slot.on = true;
+      shown(1);
+    }
     let s: number;
     do s = (Math.random() * SRC.length) | 0;
     while (s === lastSrc);
@@ -69,7 +81,12 @@ export function startPrints() {
     });
     const peak = rand(0.62, 0.85);
     slot.tl = gsap
-      .timeline()
+      .timeline({
+        onComplete: () => {
+          slot.on = false;
+          shown(-1);
+        },
+      })
       // pressed: there at once
       .to(im, { opacity: peak, duration: 0.06, ease: "none" })
       // stays a moment, then fades
@@ -78,8 +95,8 @@ export function startPrints() {
 
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== "mouse" || document.hidden) return;
-    const r = stage.getBoundingClientRect();
-    const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+    // the stage is fixed to the viewport (inset: 0): client coordinates are stage coordinates
+    const p = { x: e.clientX, y: e.clientY };
     if (!last) {
       last = p;
       return;

@@ -18,6 +18,15 @@ export const BG_COLUMNS = [
   },
 ];
 
+/**
+ * The photo strip on the main screen: five slots, left to right, at these
+ * x positions of the 1920×1080 frame (y 536, 380×390 each). The preloader
+ * deals its cards out of order: card i lands in slot SLOT_OF_CARD[i].
+ */
+export const SLOT_X = [-2, 384, 770, 1156, 1542];
+export const STRIP_Y = 536;
+export const SLOT_OF_CARD = [1, 0, 2, 3, 4];
+
 /** News photos used by the preloader stack and the hero strip. */
 export const NEWS_PHOTOS = [
   "/media/news/01.webp",

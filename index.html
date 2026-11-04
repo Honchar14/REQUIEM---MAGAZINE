@@ -1,14 +1,18 @@
 <!doctype html>
-<html lang="en" class="is-loading">
+<html lang="en" class="is-loading is-booting">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>REQUIEM — Magazine</title>
     <meta name="description" content="Culture, filed under evidence. An independent magazine about fashion, music, art and the people who make them strange." />
+    <meta name="theme-color" content="#0b0b0a" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=block" rel="stylesheet" />
+    <!-- Special Elite (Apache 2.0), self-hosted: no extra connections before the first letter -->
+    <link rel="preload" href="/fonts/special-elite-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- the first photos of the loading stack -->
+    <link rel="preload" href="/media/news/01.webp" as="image" type="image/webp" />
+    <link rel="preload" href="/media/news/02.webp" as="image" type="image/webp" />
   </head>
   <body>
     <!-- motion blur filters for the preloader photo stack -->
